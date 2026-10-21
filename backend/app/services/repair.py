@@ -13,10 +13,65 @@ logger = logging.getLogger("phoenix.repair")
 
 class RepairEngine:
     @staticmethod
-    def apply_patch_to_dir(sandbox_dir: Path, patch_content: str) -> bool:
+    def _apply_unified_diff_to_text(original_text: str, patch_text: str) -> Optional[str]:
+        """Applies unified diff hunks cleanly to file content using context matching."""
+        original_lines = original_text.splitlines()
+        patch_lines = patch_text.splitlines()
+
+        hunk_lines = []
+        in_hunk = False
+        for line in patch_lines:
+            if line.startswith("@@"):
+                in_hunk = True
+                continue
+            if in_hunk:
+                hunk_lines.append(line)
+
+        context_before = []
+        context_after = []
+        removals = []
+        additions = []
+
+        phase = "before"
+        for line in hunk_lines:
+            if line.startswith("+") and not line.startswith("+++"):
+                phase = "change"
+                additions.append(line[1:])
+            elif line.startswith("-") and not line.startswith("---"):
+                phase = "change"
+                removals.append(line[1:])
+            else:
+                cleaned = line[1:] if line.startswith(" ") else line
+                if phase == "before":
+                    context_before.append(cleaned)
+                else:
+                    context_after.append(cleaned)
+
+        start_idx = -1
+        if not context_before:
+            for i in range(len(original_lines)):
+                if original_lines[i:i + len(context_after)] == context_after:
+                    start_idx = i
+                    break
+        else:
+            for i in range(len(original_lines)):
+                if original_lines[i:i + len(context_before)] == context_before:
+                    start_idx = i + len(context_before)
+                    break
+
+        if start_idx != -1:
+            new_lines = original_lines[:start_idx] + additions + original_lines[start_idx + len(removals):]
+            result = "\n".join(new_lines)
+            if original_text.endswith("\n"):
+                result += "\n"
+            return result
+        return None
+
+    @classmethod
+    def apply_patch_to_dir(cls, sandbox_dir: Path, patch_content: str) -> bool:
         """
         Applies a unified diff patch to the sandbox directory.
-        Uses git apply if git repo exists, or python-based hunk applicator.
+        Uses git apply, hunk context matcher, or replacement fallback.
         """
         patch_file = sandbox_dir / "candidate.patch"
         patch_file.write_text(patch_content, encoding="utf-8")
@@ -36,31 +91,21 @@ class RepairEngine:
         except Exception:
             pass
 
-        # Python-based single file replace fallback for clean diff hunks
+        # Python-based hunk application fallback
         try:
             lines = patch_content.splitlines()
             current_target = None
-            old_lines = []
-            new_lines = []
-            
             for line in lines:
                 if line.startswith("+++ b/"):
                     current_target = line[6:].strip()
-                elif line.startswith("@@"):
-                    continue
-                elif line.startswith("-") and not line.startswith("---"):
-                    old_lines.append(line[1:])
-                elif line.startswith("+") and not line.startswith("+++"):
-                    new_lines.append(line[1:])
+                    break
 
             if current_target and (sandbox_dir / current_target).exists():
                 target_path = sandbox_dir / current_target
                 content = target_path.read_text(encoding="utf-8")
-                old_chunk = "\n".join(old_lines)
-                new_chunk = "\n".join(new_lines)
-                if old_chunk in content:
-                    replaced = content.replace(old_chunk, new_chunk, 1)
-                    target_path.write_text(replaced, encoding="utf-8")
+                patched_text = cls._apply_unified_diff_to_text(content, patch_content)
+                if patched_text is not None:
+                    target_path.write_text(patched_text, encoding="utf-8")
                     patch_file.unlink(missing_ok=True)
                     return True
         except Exception as e:

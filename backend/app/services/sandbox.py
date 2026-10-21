@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import subprocess
 import time
@@ -21,6 +22,13 @@ class SandboxExecutionEngine:
                 sanitized[key] = val
         sanitized["CI"] = "true"
         sanitized["PHOENIX_SANDBOX"] = "1"
+        
+        # Ensure virtualenv python/scripts path is accessible for testing tools
+        venv_scripts = str(Path(sys.executable).parent)
+        current_path = sanitized.get("PATH", "")
+        if venv_scripts not in current_path:
+            sanitized["PATH"] = f"{venv_scripts}{os.pathsep}{current_path}"
+
         return sanitized
 
     @classmethod
@@ -57,11 +65,17 @@ class SandboxExecutionEngine:
         timeout = timeout_seconds or settings.SANDBOX_TIMEOUT_SECONDS
         sanitized_env = cls.sanitize_environment()
 
+        exec_cmd = list(command)
+        if exec_cmd and exec_cmd[0] == "pytest":
+            exec_cmd = [sys.executable, "-m", "pytest"] + exec_cmd[1:]
+        elif exec_cmd and exec_cmd[0] in ("python", "python3"):
+            exec_cmd = [sys.executable] + exec_cmd[1:]
+
         start_time = time.time()
         try:
             # Direct non-shell array execution to prevent shell injection
             proc = subprocess.run(
-                command,
+                exec_cmd,
                 cwd=str(working_dir),
                 env=sanitized_env,
                 capture_output=True,
