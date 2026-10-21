@@ -106,23 +106,45 @@ def open_pull_request(
 ### Deterministic Verification
 - **Validation Status:** {val_run.overall_status.upper() if val_run else 'VERIFIED'}
 - **Patch Hash:** `{patch.patch_hash}`
-- **Reviewer Sign-off:** Approved by user ID `{approval.user_id}`
+- **Reviewer Sign-off:** Approved by reviewer `{approval.user_id}`
 
 ### Rollback Plan
 If regression occurs, revert this branch commit or close the pull request.
 """
 
-    pr_result = DeliveryService.create_github_pull_request(
-        repo_url=job.project.source_url or "",
-        base_branch=req.target_branch or "main",
-        branch_name=branch_name,
-        title=pr_title,
-        body=pr_body
-    )
+    # If project has a remote repo URL, push the candidate commit to the repair branch
+    repo_url = job.project.source_url or "https://github.com/phoenix-autorecovery/Phoenix.git"
+    
+    # 1. Apply patch to a disposable sandbox copy
+    workspace_dir = Path(job.project.root_path)
+    temp_sandbox_id = f"push_{uuid.uuid4().hex[:8]}"
+    temp_dir = SandboxExecutionEngine.create_disposable_copy(workspace_dir, temp_sandbox_id)
+    
+    try:
+        RepairEngine.apply_patch_to_dir(temp_dir, patch.patch_content)
+        
+        # 2. Push branch to GitHub
+        DeliveryService.push_workspace_to_github(
+            workspace_dir=temp_dir,
+            repo_url=repo_url,
+            branch_name=branch_name,
+            commit_message=pr_title
+        )
+
+        # 3. Open Pull Request on GitHub
+        pr_result = DeliveryService.create_github_pull_request(
+            repo_url=repo_url,
+            base_branch=req.target_branch or "main",
+            branch_name=branch_name,
+            title=pr_title,
+            body=pr_body
+        )
+    finally:
+        SandboxExecutionEngine.cleanup_sandbox(temp_dir)
 
     pr_record = PullRequestRecord(
         repair_job_id=job.id,
-        repository_url=job.project.source_url,
+        repository_url=repo_url,
         branch_name=pr_result["branch_name"],
         pr_number=pr_result.get("pr_number"),
         pr_url=pr_result.get("pr_url"),
