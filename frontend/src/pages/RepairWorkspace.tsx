@@ -18,6 +18,7 @@ import {
 import { Navbar } from '../components/Navbar';
 import { DiffViewer } from '../components/DiffViewer';
 import { api } from '../api/client';
+import { subscribeToRepairJobs } from '../api/supabase';
 import { RepairJob } from '../types';
 
 export const RepairWorkspace: React.FC = () => {
@@ -41,6 +42,15 @@ export const RepairWorkspace: React.FC = () => {
 
   useEffect(() => {
     fetchJob();
+
+    // Supabase Realtime subscription for instant job state transition
+    const unsub = subscribeToRepairJobs((payload) => {
+      if (payload.new && payload.new.id === id) {
+        fetchJob();
+      }
+    });
+
+    return () => unsub();
   }, [id]);
 
   const handleApprove = async () => {

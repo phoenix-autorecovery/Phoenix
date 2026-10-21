@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'phoenix.db'}"
+
+    # Supabase Managed Platform (Database, Auth, Storage, Realtime)
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
+    SUPABASE_JWT_SECRET: Optional[str] = None
     
     # Workspace & Storage Paths
     STORAGE_DIR: Path = BASE_DIR / "data" / "storage"

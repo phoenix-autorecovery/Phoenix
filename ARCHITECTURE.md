@@ -9,14 +9,32 @@ PHOENIX is an enterprise-grade autonomous software maintenance and recovery plat
 
 ---
 
-## 2. Layered Architecture
+## 2. Updated Technology Stack (Supabase-First)
+
+| Component | Technology | Role & Boundary |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS | Developer dashboard, diff inspection, approvals gate |
+| **Backend API** | Python, FastAPI, Pydantic | Ingestion validation, workflow orchestration, policy enforcement |
+| **Primary Database** | Supabase PostgreSQL | Relational schema, transactional integrity, foreign keys |
+| **Authentication** | Supabase Auth + JWT | User identity, organization RBAC, token verification |
+| **File & Artifact Storage**| Supabase Storage | Private buckets for project archives, generated `.patch` diffs |
+| **Vector Retrieval** | pgvector in Supabase | Code snippet & past incident semantic similarity search |
+| **Real-time Dashboard** | Supabase Realtime | WebSocket notifications for live job status & incident states |
+| **Background Jobs** | Redis + Celery / Queue | Durable task state machine, retries, timeout enforcement |
+| **AI Inference** | Groq API Adapter | Bounded context diagnosis & minimal patch plan generation |
+| **Isolated Execution** | Disposable Sandboxes / Docker | Non-root, environment-scrubbed test runs (pytest, npm test) |
+| **Delivery & SCM** | Git & GitHub App / PAT | Author of repair branches & Pull Requests (Never default branch) |
+
+---
+
+## 3. Layered Architecture
 
 ```
 +-------------------------------------------------------------------------------+
 | Layer 1: Ingestion Interfaces                                                |
 | - Public / Authorized GitHub Repo (Git shallow clone / tree fetch)             |
 | - ZIP Archive Upload (ZIP-Slip protected, bomb-limited, secret-scanned)       |
-| - Local Folder Companion CLI (Manifest-driven, ignore-respecting)              |
+| - Local Folder Companion CLI (Manifest-driven, .gitignore-compliant)          |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
@@ -30,7 +48,7 @@ PHOENIX is an enterprise-grade autonomous software maintenance and recovery plat
                                       v
 +-------------------------------------------------------------------------------+
 | Layer 3: Backend Orchestration & Policy Engine                                |
-| - FastAPI REST API & WebSocket event stream                                   |
+| - FastAPI REST API & Supabase Realtime WebSocket notifications                |
 | - Durable Job State Machine (Queued -> Ingesting -> Diagnosing -> Repairing    |
 |                              -> Validating -> Awaiting Approval -> Delivered) |
 | - RBAC (Admin, Developer, Reviewer, Auditor)                                  |
@@ -41,7 +59,7 @@ PHOENIX is an enterprise-grade autonomous software maintenance and recovery plat
 +-------------------------------------------------------------------------------+
 | Layer 4: Software Intelligence & LLM Adapter                                  |
 | - Stack Trace Parser & Error Fingerprinting                                  |
-| - Source Retrieval (AST / grep / deterministic filtering)                     |
+| - Source Retrieval (AST / grep / pgvector semantic search)                    |
 | - Provider-Independent Model Adapter (Groq API + Verified Catalogue + Mock)  |
 | - Structured Repair Plan Generator (Bounded context, minimal patch size)      |
 +-------------------------------------------------------------------------------+
@@ -51,8 +69,8 @@ PHOENIX is an enterprise-grade autonomous software maintenance and recovery plat
 | Layer 5: Isolated Verification Sandbox                                        |
 | - Disposable Sandbox (Temp working copy, scrubbed env, restricted paths)      |
 | - Deterministic Test Execution (pytest, npm test, etc.)                      |
-| - Static Analysis & Security Scanning (Semgrep / Ruff / ESLint)               |
-| - Patch Hash Binding (sha256 of candidate diff)                              |
+| - Static Analysis & Security Scanning (Semgrep / Ruff / pattern scanning)     |
+| - Cryptographic Patch Hash Binding (SHA-256 of candidate diff)                |
 +-------------------------------------------------------------------------------+
                                       |
                                       v
@@ -66,50 +84,51 @@ PHOENIX is an enterprise-grade autonomous software maintenance and recovery plat
                                       |
                                       v
 +-------------------------------------------------------------------------------+
-| Shared Enterprise Infrastructure                                              |
-| - PostgreSQL (Transactional database, relations, audit events)                |
-| - Redis / Durable Job Queue (Async execution, failure recovery)               |
-| - Structured Audit Logs (Actor, timestamp, IP, correlation ID, change details)|
+| Supabase Managed Infrastructure                                               |
+| - Supabase PostgreSQL (Transactional records, relations, audit events)        |
+| - Supabase Auth (Identity verification, token validation)                     |
+| - Supabase Storage (Private buckets: phoenix-archives, phoenix-artifacts)     |
+| - Supabase Realtime (Live job state broadcast to dashboard)                   |
+| - Row-Level Security (Strict tenant & organization isolation)                 |
 +-------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Threat Model and Trust Boundaries
+## 4. Supabase PostgreSQL Schema & Security Policies
+
+The schema migration is located in [`supabase/migrations/20261021_init_phoenix_schema.sql`](file:///c:/Users/srich_7kke41v/Desktop/Phoenix/supabase/migrations/20261021_init_phoenix_schema.sql):
+
+- **profiles**: Linked to `auth.users(id)` with roles: `admin`, `developer`, `reviewer`, `auditor`.
+- **projects**: Workspace records with `content_fingerprint`, `root_path`, `health_status`.
+- **project_snapshots**: Manifest and file count tracking.
+- **incidents**: Incident records, error signatures, severity, status.
+- **diagnoses**: Root cause hypothesis, confidence score, evidence, affected files.
+- **repair_jobs**: State machine tracking, patch hash, base commit SHA, retry counts.
+- **candidate_patches**: Unified diffs, modified files list, SHA-256 patch hash.
+- **validation_runs**: Exit codes, duration, test logs, security scan findings.
+- **approvals**: Reviewer decisions cryptographically bound to `(patch_hash, base_commit)`.
+- **pull_requests**: Branch names and PR URLs.
+- **audit_events**: Immutable action logs with correlation IDs.
+- **code_embeddings**: pgvector `vector(1536)` table with ivfflat index.
+
+### Row-Level Security (RLS) Boundaries:
+- `projects`: Users can view/modify only projects matching `user_id = auth.uid()` or role `admin`.
+- `incidents` & `repair_jobs`: Filtered by project ownership.
+- `approvals`: Only users with role `reviewer` or `admin` can create or update approval decisions.
+- `audit_events`: Viewable by event owner or role `auditor`/`admin`.
+
+---
+
+## 5. Threat Model and Trust Boundaries
 
 | Threat / Risk | Mitigation Strategy |
 | :--- | :--- |
 | **ZIP Slip / Path Traversal** | Normalized absolute path resolution; verify all unzipped paths remain inside the target working directory. Symlinks are rejected. |
-| **Archive Bombs** | Max archive size limit (50MB compressed, 200MB uncompressed), max file count (10,000 files), decompression ratio monitoring. |
+| **Archive Bombs** | Max archive size limit (50MB compressed, 250MB uncompressed), max file count (15,000 files), decompression ratio monitoring. |
 | **Untrusted Repository Execution** | Code is never automatically executed upon ingestion. Verification commands run inside isolated sandboxes with strict execution timeouts, restricted environment variables, and non-shell vector calls. |
 | **Prompt Injection** | Project files, READMEs, and issue descriptions are treated as untrusted strings wrapped in rigid JSON schema templates. Model output cannot execute arbitrary host shell commands. |
-| **Secret Leakage** | Pre-ingestion regex scanning detects API keys, tokens, and private keys. High-entropy strings are redacted before code is sent to the LLM. Server credentials (Groq keys, GitHub PATs) are stored encrypted or in environment variables and never logged. |
-| **Unauthorized Git Push** | Read-only by default. Creating branches and pull requests requires explicit user authorization and GitHub PAT/App token. Phoenix never pushes directly to default branches (e.g. `main` or `master`). |
+| **Secret Leakage** | Pre-ingestion regex scanning detects API keys, tokens, and private keys. Environment scrubbing ensures credentials never leak to execution processes. |
+| **Unauthorized Git Push** | Read-only by default. Creating branches and pull requests requires explicit user authorization and GitHub PAT/App token. Phoenix never pushes directly to default branches. |
 | **Approval Tampering** | Approvals are strictly cryptographically bound to `(patch_hash, base_commit_sha)`. Any alteration to the patch or repository invalidates pending or granted approvals. |
-| **Cross-Tenant Access** | Every project, incident, repair job, and audit log is isolated by tenant/user ID. API middleware enforces tenancy on all route endpoints. |
-
----
-
-## 4. Database Schema Design (PostgreSQL / SQLite Dual Compatibility)
-
-- **users**: ID, email, hashed_password, full_name, role (`admin`, `developer`, `reviewer`, `auditor`), is_active, created_at.
-- **projects**: ID, user_id, name, description, input_type (`github`, `zip`, `local`), source_url, original_fingerprint, detected_language, detected_framework, root_path, created_at, updated_at.
-- **project_snapshots**: ID, project_id, commit_sha, file_count, total_size, manifest_json, created_at.
-- **incidents**: ID, project_id, title, description, raw_log, stack_trace, error_signature, severity (`critical`, `high`, `medium`, `low`), status (`detected`, `diagnosing`, `diagnosed`, `repairing`, `resolved`, `closed`), created_at.
-- **diagnoses**: ID, incident_id, root_cause_hypothesis, confidence_score, evidence_json, relevant_files_json, suggested_action, is_repair_safe, model_used, created_at.
-- **repair_jobs**: ID, incident_id, project_id, status (`queued`, `generating`, `validating`, `awaiting_approval`, `approved`, `rejected`, `delivered`, `failed`), retry_count, max_retries, patch_hash, base_commit, repair_plan_json, error_message, created_at, updated_at.
-- **candidate_patches**: ID, repair_job_id, patch_content, diff_summary, files_modified_json, patch_hash, created_at.
-- **validation_runs**: ID, repair_job_id, candidate_patch_id, overall_status (`passed`, `failed`, `inconclusive`), exit_code, duration_ms, test_output, security_findings_json, ran_at.
-- **approvals**: ID, repair_job_id, candidate_patch_id, user_id, status (`pending`, `approved`, `rejected`), patch_hash, base_commit, reviewer_notes, decided_at.
-- **pull_requests**: ID, repair_job_id, repository_url, branch_name, pr_number, pr_url, status, created_at.
-- **audit_events**: ID, user_id, action, resource_type, resource_id, correlation_id, ip_address, details_json, created_at.
-- **system_settings**: ID, key, value_encrypted, is_secret, updated_at.
-
----
-
-## 5. Model Inference Strategy (Groq Adapter)
-
-1. **Configurable Model**: Default to `llama-3.3-70b-versatile` or `llama-3.1-8b-instant`.
-2. **Capability Check**: Dynamic ping to `/models` endpoint to verify model availability.
-3. **Structured Outputs**: JSON Schema enforcement for structured diagnosis and repair plans.
-4. **Deterministic Mock Mode**: When no Groq API key is configured or when running automated test suites, the `MockLLMProvider` produces syntactically valid, deterministic responses for tests and demonstration.
+| **Cross-Tenant Access** | Every project, incident, repair job, and audit log is isolated by tenant/user ID and enforced via PostgreSQL RLS and API middleware. |

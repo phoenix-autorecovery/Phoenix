@@ -35,6 +35,31 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # 1. First attempt verification against Supabase Auth JWT if configured
+    from backend.app.services.supabase import SupabaseService
+    supabase_payload = SupabaseService.verify_supabase_jwt(token)
+    if supabase_payload:
+        sub = supabase_payload.get("sub")
+        email = supabase_payload.get("email")
+        role = supabase_payload.get("user_metadata", {}).get("role", "developer")
+        
+        # Ensure user exists in local database session
+        user = db.query(User).filter(User.id == sub).first()
+        if not user:
+            user = User(
+                id=sub,
+                email=email or f"{sub}@supabase.user",
+                hashed_password="supabase_auth_managed",
+                full_name=supabase_payload.get("user_metadata", {}).get("full_name", email),
+                role=role
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    # 2. Fallback to local JWT verification
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")

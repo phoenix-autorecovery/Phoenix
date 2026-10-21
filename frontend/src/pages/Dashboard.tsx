@@ -14,6 +14,7 @@ import {
 import { Navbar } from '../components/Navbar';
 import { ImportProjectModal } from '../components/ImportProjectModal';
 import { api } from '../api/client';
+import { subscribeToRepairJobs, subscribeToIncidents, isSupabaseConfigured } from '../api/supabase';
 import { DashboardMetrics } from '../types';
 
 export const Dashboard: React.FC = () => {
@@ -34,8 +35,17 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 10000); // refresh every 10s
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchMetrics, 10000); // polling fallback
+
+    // Supabase Realtime live subscriptions
+    const unsubRepairs = subscribeToRepairJobs(() => fetchMetrics());
+    const unsubIncidents = subscribeToIncidents(() => fetchMetrics());
+
+    return () => {
+      clearInterval(interval);
+      unsubRepairs();
+      unsubIncidents();
+    };
   }, []);
 
   return (
