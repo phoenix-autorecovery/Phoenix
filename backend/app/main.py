@@ -55,6 +55,17 @@ def readiness_check():
 def seed_default_accounts():
     db = SessionLocal()
     try:
+        charan = db.query(User).filter(User.email == "charan@phoenix.io").first()
+        if not charan:
+            charan = User(
+                email="charan@phoenix.io",
+                hashed_password=get_password_hash("charan123"),
+                full_name="Charan",
+                role="admin"
+            )
+            db.add(charan)
+            logger.info("Seeded administrator account: charan@phoenix.io")
+
         admin = db.query(User).filter(User.email == "admin@phoenix.io").first()
         if not admin:
             admin = User(
