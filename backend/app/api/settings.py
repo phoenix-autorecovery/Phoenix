@@ -23,7 +23,7 @@ def get_settings(current_user: User = Depends(get_current_user)):
         "sandbox_timeout_seconds": settings.SANDBOX_TIMEOUT_SECONDS,
         "sandbox_network_isolated": settings.SANDBOX_NETWORK_ISOLATED,
         "docker_available": settings.DOCKER_AVAILABLE,
-        "available_models": caps.get("models", ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"])
+        "available_models": caps.get("models") if (caps.get("models") and len(caps.get("models")) > 0) else settings.SUPPORTED_GROQ_MODELS
     }
 
 @router.post("", response_model=SystemSettingsResponse)

@@ -10,7 +10,11 @@ import {
   ShieldCheck, 
   ArrowLeft,
   Loader2,
-  FileText
+  FileText,
+  Zap,
+  Cpu,
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { NewIncidentModal } from '../components/NewIncidentModal';
@@ -25,6 +29,13 @@ export const ProjectDetail: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNewIncidentOpen, setIsNewIncidentOpen] = useState(false);
+
+  // Auto-Pilot state
+  const [selectedModel, setSelectedModel] = useState('llama-3.1-70b-versatile');
+  const [autoPilotRunning, setAutoPilotRunning] = useState(false);
+  const [scanRunning, setScanRunning] = useState(false);
+  const [autoPilotResult, setAutoPilotResult] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<any>(null);
 
   const loadData = async () => {
     try {
@@ -42,6 +53,36 @@ export const ProjectDetail: React.FC = () => {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleScan = async () => {
+    setScanRunning(true);
+    setScanResult(null);
+    try {
+      const res = await api.post(`/projects/${id}/scan`);
+      setScanResult(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Scan failed.');
+    } finally {
+      setScanRunning(false);
+    }
+  };
+
+  const handleTriggerAutoPilot = async () => {
+    setAutoPilotRunning(true);
+    setAutoPilotResult(null);
+    try {
+      const res = await api.post(`/projects/${id}/auto-pilot`, {
+        auto_apply: true,
+        override_model: selectedModel
+      });
+      setAutoPilotResult(res.data);
+      await loadData();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Auto-Pilot execution failed.');
+    } finally {
+      setAutoPilotRunning(false);
     }
   };
 
@@ -127,6 +168,125 @@ export const ProjectDetail: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Autonomous Auto-Pilot Panel */}
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-orange-950/40 via-slate-900 to-slate-900 border border-orange-500/30 shadow-xl space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-orange-600/20 text-orange-400 border border-orange-500/30">
+                  <Zap className="w-5 h-5" />
+                </span>
+                <h3 className="text-base font-extrabold text-white tracking-wide">
+                  Autonomous Auto-Pilot Self-Healing
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase font-bold">
+                  Fully Autonomous
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Automatically detects errors, diagnoses root cause, iterates repairs in sandboxes, and patches your workspace on its own.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                <Cpu className="w-4 h-4 text-orange-400" />
+                <span className="text-xs text-slate-400">AI Model:</span>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="bg-transparent text-xs text-slate-200 font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="llama-3.1-70b-versatile" className="bg-slate-900">LLaMA 3.1 70B</option>
+                  <option value="llama-3.1-8b-instant" className="bg-slate-900">LLaMA 3.1 8B</option>
+                  <option value="qwen-2.5-coder-32b" className="bg-slate-900">Qwen 2.5 Coder 32B</option>
+                  <option value="llama-3.3-70b-versatile" className="bg-slate-900">LLaMA 3.3 70B</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleScan}
+                disabled={scanRunning || autoPilotRunning}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-50 transition-all"
+              >
+                {scanRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                <span>Scan Workspace</span>
+              </button>
+
+              <button
+                onClick={handleTriggerAutoPilot}
+                disabled={autoPilotRunning || scanRunning}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-lg shadow-orange-600/30 disabled:opacity-50 transition-all"
+              >
+                {autoPilotRunning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Auto-Healing Workspace...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    <span>Auto-Heal Project Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Scan Results Banner */}
+          {scanResult && (
+            <div className={`p-4 rounded-xl text-xs border ${scanResult.defects_count > 0 ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'}`}>
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-2">
+                  {scanResult.defects_count > 0 ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {scanResult.defects_count > 0 ? `Found ${scanResult.defects_count} defect(s) requiring attention.` : 'Zero defects detected! Workspace passes all syntax and test checks.'}
+                </span>
+                <span className="text-[11px] font-mono opacity-75">{new Date().toLocaleTimeString()}</span>
+              </div>
+              {scanResult.defects_count > 0 && (
+                <ul className="mt-2 space-y-1 text-slate-300 font-mono text-[11px] list-disc list-inside">
+                  {scanResult.defects.map((d: any, idx: number) => (
+                    <li key={idx}><span className="text-amber-400 font-bold">[{d.type}]</span> {d.title}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Auto-Pilot Results Card */}
+          {autoPilotResult && (
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{autoPilotResult.message || 'Auto-Pilot self-healing cycle finished.'}</span>
+                </div>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                  Model: {autoPilotResult.model_used}
+                </span>
+              </div>
+
+              {autoPilotResult.patch_diff && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-mono uppercase text-slate-400">Autonomous Patch Applied:</span>
+                  <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-40">
+                    {autoPilotResult.patch_diff}
+                  </pre>
+                </div>
+              )}
+
+              {autoPilotResult.test_output && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-mono uppercase text-slate-400">Deterministic Verification Log:</span>
+                  <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300 overflow-x-auto max-h-28">
+                    {autoPilotResult.test_output}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Risks Identified */}

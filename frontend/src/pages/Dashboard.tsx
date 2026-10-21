@@ -9,7 +9,9 @@ import {
   ArrowUpRight, 
   Plus, 
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  Zap,
+  Cpu
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { ImportProjectModal } from '../components/ImportProjectModal';
@@ -118,6 +120,33 @@ export const Dashboard: React.FC = () => {
               <span className="text-xs text-slate-500 font-mono">awaiting sign-off</span>
             </div>
           </div>
+        </div>
+
+        {/* Auto-Pilot Highlight Banner */}
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-orange-950/40 via-slate-900 to-slate-900 border border-orange-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-600/20 text-orange-400 border border-orange-500/30">
+              <Zap className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Autonomous Error Detection & Self-Healing Active</h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold uppercase">
+                  Groq LLM (LLaMA 3.1 & Qwen)
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Workspaces automatically scan for failing tests and syntax regressions, synthesize high-precision repairs with Groq, verify in sandboxes, and self-heal automatically.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/projects"
+            className="shrink-0 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white flex items-center gap-1.5 shadow-lg shadow-orange-600/20 transition-all"
+          >
+            <span>View Monitored Projects</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Operational Grid: Architecture Principle & Recent Activity */}

@@ -70,6 +70,11 @@ class GroqProvider(LLMProvider):
             "temperature": temperature,
             "max_tokens": 4096
         }
+        
+        # Enable JSON object enforcement for supported models when requested in prompt
+        prompt_text = " ".join([m.get("content", "") for m in messages]).lower()
+        if "json" in prompt_text and any(m_family in self.model.lower() for m_family in ["llama-3", "qwen"]):
+            payload["response_format"] = {"type": "json_object"}
 
         last_error = None
         for attempt in range(self.max_retries):

@@ -6,7 +6,7 @@ from backend.app.config import settings
 from backend.app.database import engine, Base, SessionLocal
 from backend.app.models.user import User
 from backend.app.core.security import get_password_hash
-from backend.app.api import auth, projects, ingestion, incidents, repairs, approvals, delivery, audit, settings as settings_api
+from backend.app.api import auth, projects, ingestion, incidents, repairs, approvals, delivery, audit, settings as settings_api, autopilot
 
 # Configure root logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -55,17 +55,6 @@ def readiness_check():
 def seed_default_accounts():
     db = SessionLocal()
     try:
-        charan = db.query(User).filter(User.email == "charan@phoenix.io").first()
-        if not charan:
-            charan = User(
-                email="charan@phoenix.io",
-                hashed_password=get_password_hash("charan123"),
-                full_name="Charan",
-                role="admin"
-            )
-            db.add(charan)
-            logger.info("Seeded administrator account: charan@phoenix.io")
-
         admin = db.query(User).filter(User.email == "admin@phoenix.io").first()
         if not admin:
             admin = User(
@@ -102,6 +91,7 @@ app.include_router(approvals.router, prefix=settings.API_V1_STR)
 app.include_router(delivery.router, prefix=settings.API_V1_STR)
 app.include_router(audit.router, prefix=settings.API_V1_STR)
 app.include_router(settings_api.router, prefix=settings.API_V1_STR)
+app.include_router(autopilot.router, prefix=settings.API_V1_STR)
 
 if __name__ == "__main__":
     import uvicorn

@@ -41,12 +41,23 @@ class Settings(BaseSettings):
     SANDBOX_NETWORK_ISOLATED: bool = True
     DOCKER_AVAILABLE: bool = False
     
-    # Groq / LLM Settings
+    # Groq / LLM Settings (Powered by LLaMA 3.1 & Qwen)
     GROQ_API_KEY: Optional[str] = None
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "llama-3.1-70b-versatile"
+    SUPPORTED_GROQ_MODELS: List[str] = [
+        "llama-3.1-70b-versatile",
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile",
+        "qwen-2.5-coder-32b",
+        "qwen-2.5-32b"
+    ]
     LLM_PROVIDER: str = "groq"
     LLM_TIMEOUT_SECONDS: int = 45
     LLM_MAX_RETRIES: int = 3
+    
+    # Autonomous Recovery / Auto-Pilot
+    AUTONOMOUS_AUTO_APPLY: bool = True
+    MAX_AUTONOMOUS_ATTEMPTS: int = 3
     
     # GitHub Integration
     GITHUB_TOKEN: Optional[str] = None

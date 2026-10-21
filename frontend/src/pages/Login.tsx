@@ -7,8 +7,8 @@ import { useAuth } from '../context/AuthContext';
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState('charan@phoenix.io');
-  const [password, setPassword] = useState('charan123');
+  const [email, setEmail] = useState('admin@phoenix.io');
+  const [password, setPassword] = useState('phoenix123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export const Login: React.FC = () => {
     await performLogin(email, password);
   };
 
-  const handleQuickLogin = (quickEmail: string, quickPass: string = 'charan123') => {
+  const handleQuickLogin = (quickEmail: string, quickPass: string = 'phoenix123') => {
     setEmail(quickEmail);
     setPassword(quickPass);
     performLogin(quickEmail, quickPass);
@@ -91,27 +91,27 @@ export const Login: React.FC = () => {
             className="w-full py-2.5 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all"
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            <span>Sign In as Charan</span>
+            <span>Sign In</span>
           </button>
         </form>
 
         {/* Quick Demo Credentials Fill */}
         <div className="pt-2 border-t border-slate-800 text-center space-y-2">
-          <p className="text-[11px] text-slate-500">One-click sign-in:</p>
+          <p className="text-[11px] text-slate-500">Quick sign-in:</p>
           <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
-              onClick={() => handleQuickLogin('charan@phoenix.io', 'charan123')}
+              onClick={() => handleQuickLogin('admin@phoenix.io', 'phoenix123')}
               className="px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-xs font-semibold text-orange-300 border border-orange-500/40 shadow"
             >
-              👑 Charan (Admin)
+              🛡️ Administrator (Admin)
             </button>
             <button
               type="button"
-              onClick={() => handleQuickLogin('admin@phoenix.io', 'phoenix123')}
+              onClick={() => handleQuickLogin('developer@phoenix.io', 'phoenix123')}
               className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 border border-slate-700"
             >
-              admin@phoenix.io
+              💻 Developer
             </button>
           </div>
         </div>

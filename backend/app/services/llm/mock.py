@@ -1,14 +1,18 @@
 import json
 from typing import Dict, Any, List
+from backend.app.config import settings
 from backend.app.services.llm.base import LLMProvider
 
 class MockLLMProvider(LLMProvider):
+    def __init__(self, model: str = None):
+        self.model = model or settings.GROQ_MODEL
+
     def check_capabilities(self) -> Dict[str, Any]:
         return {
             "available": True,
-            "active_model": "mock-deterministic-repair-v1",
+            "active_model": self.model,
             "model_in_catalogue": True,
-            "models": ["mock-deterministic-repair-v1"]
+            "models": settings.SUPPORTED_GROQ_MODELS
         }
 
     def generate_chat(self, messages: List[Dict[str, str]], temperature: float = 0.2) -> str:

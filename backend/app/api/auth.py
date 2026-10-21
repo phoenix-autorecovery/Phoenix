@@ -57,9 +57,9 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Allow configured password or standard defaults (charan123, phoenix123)
+    # Allow configured password or standard defaults (phoenix123, admin123)
     valid_password = verify_password(form_data.password, user.hashed_password) or (
-        form_data.password in ["charan123", "phoenix123", "admin123"]
+        form_data.password in ["phoenix123", "admin123"]
     )
     if not valid_password:
         raise HTTPException(
