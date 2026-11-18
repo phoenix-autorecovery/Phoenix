@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api/client';
 
 interface CommandItem {
@@ -30,6 +31,7 @@ interface CommandItem {
 export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { mode, setMode, toggleMode } = useMode();
+  const { success, error } = useToast();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,9 +47,10 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
   const switchModel = async (modelName: string) => {
     try {
       await api.post('/settings/models', { model: modelName });
+      success(`Switched inference model to ${modelName}`, 'Model Reconfigured');
       onClose();
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Model switch failed.');
+      error(e.response?.data?.detail || 'Model switch failed.', 'Model Error');
     }
   };
 
@@ -105,6 +108,17 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       icon: <FileText className="w-4 h-4 text-zinc-400" />,
       action: () => {
         navigate('/audit');
+        onClose();
+      }
+    },
+    {
+      id: 'nav-mcp',
+      title: 'MCP Protocol & Agent Console',
+      subtitle: 'Inspect Model Context Protocol tools, run JSON-RPC gateway calls, and view prompts',
+      category: 'Navigation',
+      icon: <Terminal className="w-4 h-4 text-emerald-400" />,
+      action: () => {
+        navigate('/mcp');
         onClose();
       }
     },

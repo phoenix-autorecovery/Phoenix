@@ -9,7 +9,8 @@ import {
   ScrollText, 
   Settings, 
   LogOut,
-  Flame
+  Flame,
+  Terminal
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,6 +23,7 @@ export const Sidebar: React.FC = () => {
     { to: '/incidents', label: 'Incidents', icon: AlertTriangle },
     { to: '/repairs', label: 'Repairs & Diffs', icon: Wrench },
     { to: '/approvals', label: 'Approvals Gate', icon: CheckCircle2 },
+    { to: '/mcp', label: 'MCP & Agents', icon: Terminal },
     { to: '/audit', label: 'Audit Trail', icon: ScrollText },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];

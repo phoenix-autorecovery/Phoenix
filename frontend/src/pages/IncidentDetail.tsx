@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
+import { useToast } from '../context/ToastContext';
 import { Incident } from '../types';
 
 export const IncidentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { success, error } = useToast();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
   const [diagnosing, setDiagnosing] = useState(false);
@@ -44,8 +46,9 @@ export const IncidentDetail: React.FC = () => {
     try {
       await api.post(`/incidents/${id}/diagnose`);
       await fetchIncident();
+      success('Diagnostic analysis completed.', 'Root Cause Identified');
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Diagnosis failed.');
+      error(e.response?.data?.detail || 'Diagnosis failed.', 'Diagnosis Error');
     } finally {
       setDiagnosing(false);
     }
@@ -55,9 +58,10 @@ export const IncidentDetail: React.FC = () => {
     setRepairing(true);
     try {
       const res = await api.post('/repairs', { incident_id: id });
+      success('Repair candidate generated.', 'Repair Workspace');
       navigate(`/repairs/${res.data.id}`);
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Repair generation failed.');
+      error(e.response?.data?.detail || 'Repair generation failed.', 'Repair Error');
       setRepairing(false);
     }
   };

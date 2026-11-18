@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModeProvider } from './context/ModeContext';
+import { ToastProvider } from './context/ToastContext';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
@@ -12,6 +13,7 @@ import { RepairWorkspace } from './pages/RepairWorkspace';
 import { Approvals } from './pages/Approvals';
 import { AuditLogs } from './pages/AuditLogs';
 import { Settings } from './pages/Settings';
+import { McpConsole } from './pages/McpConsole';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 
@@ -54,6 +56,7 @@ const ProtectedLayout: React.FC = () => {
         <Route path="/repairs" element={<Dashboard />} />
         <Route path="/repairs/:id" element={<RepairWorkspace />} />
         <Route path="/approvals" element={<Approvals />} />
+        <Route path="/mcp" element={<McpConsole />} />
         <Route path="/audit" element={<AuditLogs />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -67,13 +70,15 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <ModeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/*" element={<ProtectedLayout />} />
-          </Routes>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/*" element={<ProtectedLayout />} />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
       </ModeProvider>
     </AuthProvider>
   );

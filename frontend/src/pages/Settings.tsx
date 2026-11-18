@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Settings as SettingsIcon, Key, Github, Shield, CheckCircle2, Loader2, Cpu } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
+import { useToast } from '../context/ToastContext';
 import { SystemSettings } from '../types';
 
 export const Settings: React.FC = () => {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,9 +55,10 @@ export const Settings: React.FC = () => {
       setGroqKey('');
       setGithubToken('');
       setSuccess(true);
+      toastSuccess('Platform configuration saved.', 'Settings Updated');
       setTimeout(() => setSuccess(false), 3000);
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Failed to update settings.');
+      toastError(e.response?.data?.detail || 'Failed to update settings.', 'Save Error');
     } finally {
       setSaving(false);
     }

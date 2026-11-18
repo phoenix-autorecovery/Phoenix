@@ -16,9 +16,11 @@ import {
 import { Navbar } from '../components/Navbar';
 import { ImportProjectModal } from '../components/ImportProjectModal';
 import { api } from '../api/client';
+import { useToast } from '../context/ToastContext';
 import { Project } from '../types';
 
 export const Projects: React.FC = () => {
+  const { success, error } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -43,8 +45,9 @@ export const Projects: React.FC = () => {
     try {
       await api.delete(`/projects/${id}`);
       setProjects((prev) => prev.filter((p) => p.id !== id));
+      success(`Project '${name}' was deleted.`, 'Workspace Removed');
     } catch (e) {
-      alert('Failed to delete project.');
+      error('Failed to delete project.', 'Delete Error');
     }
   };
 

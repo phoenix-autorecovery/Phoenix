@@ -17,14 +17,17 @@ import {
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { DiffViewer } from '../components/DiffViewer';
+import { AgentTimeline } from '../components/AgentTimeline';
 import { api } from '../api/client';
 import { subscribeToRepairJobs } from '../api/supabase';
 import { RepairJob } from '../types';
 import { useMode } from '../context/ModeContext';
+import { useToast } from '../context/ToastContext';
 
 export const RepairWorkspace: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { mode } = useMode();
+  const { success, error } = useToast();
   const [job, setJob] = useState<RepairJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -63,9 +66,10 @@ export const RepairWorkspace: React.FC = () => {
         patch_hash: job.patch_hash,
         notes: notes.trim() || undefined
       });
+      success('Cryptographic approval registered.', 'Patch Authorized');
       await fetchJob();
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Approval failed.');
+      error(e.response?.data?.detail || 'Approval failed.', 'Approval Error');
     } finally {
       setActionLoading(false);
     }
@@ -79,9 +83,10 @@ export const RepairWorkspace: React.FC = () => {
         patch_hash: job.patch_hash,
         notes: notes.trim() || 'Rejected by reviewer'
       });
+      success('Patch was rejected.', 'Review Recorded');
       await fetchJob();
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Rejection failed.');
+      error(e.response?.data?.detail || 'Rejection failed.', 'Rejection Error');
     } finally {
       setActionLoading(false);
     }
@@ -96,9 +101,10 @@ export const RepairWorkspace: React.FC = () => {
         target_branch: 'main'
       });
       setPrCreated(res.data.pr_url || res.data.branch_name);
+      success('Pull request generated and pushed to GitHub.', 'Delivery Complete');
       await fetchJob();
     } catch (e: any) {
-      alert(e.response?.data?.detail || 'Pull request creation failed.');
+      error(e.response?.data?.detail || 'Pull request creation failed.', 'Delivery Error');
     } finally {
       setActionLoading(false);
     }
@@ -392,6 +398,9 @@ export const RepairWorkspace: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Autonomous Multi-Agent Runtime Telemetry */}
+            <AgentTimeline jobId={job.id} autoRefresh={job.status === 'generating'} />
           </div>
         )}
       </main>

@@ -21,10 +21,12 @@ import { NewIncidentModal } from '../components/NewIncidentModal';
 import { api } from '../api/client';
 import { Project, ProjectProfile, Incident } from '../types';
 import { useMode } from '../context/ModeContext';
+import { useToast } from '../context/ToastContext';
 
 export const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { mode } = useMode();
+  const { success, error } = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [profile, setProfile] = useState<ProjectProfile | null>(null);
   const [files, setFiles] = useState<{ path: string; size_bytes: number }[]>([]);
@@ -64,8 +66,9 @@ export const ProjectDetail: React.FC = () => {
     try {
       const res = await api.post(`/projects/${id}/scan`);
       setScanResult(res.data);
+      success(`Defect scan completed: ${res.data.defects_count} issues detected.`, 'Scan Finished');
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Scan failed.');
+      error(err.response?.data?.detail || 'Scan failed.', 'Scan Error');
     } finally {
       setScanRunning(false);
     }
@@ -80,9 +83,10 @@ export const ProjectDetail: React.FC = () => {
         override_model: selectedModel
       });
       setAutoPilotResult(res.data);
+      success('Auto-pilot self-healing workflow completed.', 'Auto-Pilot Success');
       await loadData();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Auto-Pilot execution failed.');
+      error(err.response?.data?.detail || 'Auto-Pilot execution failed.', 'Auto-Pilot Error');
     } finally {
       setAutoPilotRunning(false);
     }
