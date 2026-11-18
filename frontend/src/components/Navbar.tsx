@@ -14,9 +14,14 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle, actionButton })
   const { mode, setMode } = useMode();
 
   useEffect(() => {
-    api.get('/health')
-      .then(() => setHealthy(true))
-      .catch(() => setHealthy(false));
+    const checkReadiness = () => {
+      api.get('/ready')
+        .then((res) => setHealthy(res.data?.sandboxes_ready ?? true))
+        .catch(() => setHealthy(false));
+    };
+    checkReadiness();
+    const interval = setInterval(checkReadiness, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerCmdK = () => {

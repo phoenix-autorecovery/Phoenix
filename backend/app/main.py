@@ -34,6 +34,7 @@ app.add_middleware(
 
 # Health & Readiness checks
 @app.get("/health", tags=["Observability"])
+@app.get(f"{settings.API_V1_STR}/health", tags=["Observability"])
 def health_check():
     return {
         "status": "healthy",
@@ -42,6 +43,7 @@ def health_check():
     }
 
 @app.get("/ready", tags=["Observability"])
+@app.get(f"{settings.API_V1_STR}/ready", tags=["Observability"])
 def readiness_check():
     return {
         "status": "ready",

@@ -53,7 +53,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, patchHash, filesMo
           
           {repairJobId && (
             <a
-              href={`http://localhost:8000/api/v1/repairs/${repairJobId}/artifact?artifact_type=patch`}
+              href={`/api/v1/repairs/${repairJobId}/artifact?artifact_type=patch`}
               download
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-500 text-white transition-colors"
             >

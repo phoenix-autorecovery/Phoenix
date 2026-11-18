@@ -144,7 +144,7 @@ export const RepairWorkspace: React.FC = () => {
             </Link>
 
             <a
-              href={`http://localhost:8000/api/v1/repairs/${job.id}/artifact?artifact_type=zip`}
+              href={`/api/v1/repairs/${job.id}/artifact?artifact_type=zip`}
               download
               className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700"
             >
