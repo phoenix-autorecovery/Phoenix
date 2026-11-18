@@ -17,9 +17,11 @@ import { Navbar } from '../components/Navbar';
 import { ImportProjectModal } from '../components/ImportProjectModal';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useMode } from '../context/ModeContext';
 import { Project } from '../types';
 
 export const Projects: React.FC = () => {
+  const { mode } = useMode();
   const { success, error } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,12 +114,20 @@ export const Projects: React.FC = () => {
 
                       {/* Health Indicator */}
                       {proj.health_status === 'healthy' ? (
-                        <span className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <ShieldCheck className="w-3 h-3" /> Healthy
+                        <span className={`flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full ${
+                          mode === 'simple'
+                            ? 'bg-emerald-500/10 text-emerald-400 font-medium'
+                            : 'bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20'
+                        }`}>
+                          <ShieldCheck className="w-3 h-3" /> {mode === 'simple' ? 'Protected' : 'Healthy'}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          <ShieldAlert className="w-3 h-3" /> Degraded
+                        <span className={`flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full ${
+                          mode === 'simple'
+                            ? 'bg-amber-500/10 text-amber-400 font-medium'
+                            : 'bg-amber-500/10 text-amber-400 font-mono border border-amber-500/20'
+                        }`}>
+                          <ShieldAlert className="w-3 h-3" /> {mode === 'simple' ? 'Needs Fix' : 'Degraded'}
                         </span>
                       )}
                     </div>
@@ -139,27 +149,31 @@ export const Projects: React.FC = () => {
                       )}
                     </div>
 
-                    {proj.content_fingerprint && (
-                      <div className="text-[10px] font-mono text-slate-500 truncate">
-                        SHA-256: <span className="text-slate-400">{proj.content_fingerprint.slice(0, 16)}...</span>
+                    {mode === 'dev' && proj.content_fingerprint && (
+                      <div className="text-[10px] font-mono text-slate-500 truncate pt-1">
+                        SHA-256: <span className="text-slate-400">{proj.content_fingerprint.slice(0, 20)}...</span>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <button
-                      onClick={() => handleDelete(proj.id, proj.name)}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-                      title="Delete Workspace"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {mode === 'dev' ? (
+                      <button
+                        onClick={() => handleDelete(proj.id, proj.name)}
+                        title="Delete project workspace"
+                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-500">Auto-Healing Ready</span>
+                    )}
 
                     <Link
                       to={`/projects/${proj.id}`}
                       className="inline-flex items-center space-x-1.5 text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors"
                     >
-                      <span>Explore Workspace</span>
+                      <span>{mode === 'simple' ? 'Open Health Portal' : 'Open Workspace'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>

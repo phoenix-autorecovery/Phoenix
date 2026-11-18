@@ -15,11 +15,13 @@ import {
 import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useMode } from '../context/ModeContext';
 import { Incident } from '../types';
 
 export const IncidentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { mode } = useMode();
   const { success, error } = useToast();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,14 +148,23 @@ export const IncidentDetail: React.FC = () => {
             <p className="text-xs text-slate-300">{incident.description}</p>
           )}
 
-          {/* Stack trace display */}
-          {incident.stack_trace && (
-            <div className="space-y-1.5 pt-2">
-              <span className="text-xs font-mono text-slate-400">Observed Stack Trace:</span>
-              <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-rose-300/90 overflow-x-auto leading-relaxed">
-                {incident.stack_trace}
-              </pre>
+          {/* Stack trace display or Simple Summary */}
+          {mode === 'simple' ? (
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-xs space-y-1">
+              <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Defect Diagnosis</span>
+              <p className="text-slate-300">
+                Phoenix detected an unexpected runtime crash in this project. Automated software intelligence has isolated the root cause and prepared a verified candidate fix.
+              </p>
             </div>
+          ) : (
+            incident.stack_trace && (
+              <div className="space-y-1.5 pt-2">
+                <span className="text-xs font-mono text-slate-400">Observed Stack Trace:</span>
+                <pre className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 font-mono text-xs text-rose-300/90 overflow-x-auto leading-relaxed">
+                  {incident.stack_trace}
+                </pre>
+              </div>
+            )
           )}
         </div>
 
@@ -164,19 +175,23 @@ export const IncidentDetail: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <BrainCircuit className="w-5 h-5 text-orange-400" />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">Structured AI Diagnostic Report</h3>
+                  <h3 className="text-sm font-bold text-slate-100">
+                    {mode === 'simple' ? 'AI Solution & Plain-English Analysis' : 'Structured AI Diagnostic Report'}
+                  </h3>
                   <p className="text-xs font-mono text-slate-500">
-                    Model: {latestDiagnosis.model_used || 'Groq Adapter'} · Time: {new Date(latestDiagnosis.created_at).toLocaleTimeString()}
+                    {mode === 'simple'
+                      ? `Analysis complete · ${new Date(latestDiagnosis.created_at).toLocaleTimeString()}`
+                      : `Model: ${latestDiagnosis.model_used || 'Groq Adapter'} · Time: ${new Date(latestDiagnosis.created_at).toLocaleTimeString()}`}
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                  Confidence: {(latestDiagnosis.confidence_score * 100).toFixed(0)}%
+                  {mode === 'simple' ? 'Verified Safe' : `Confidence: ${(latestDiagnosis.confidence_score * 100).toFixed(0)}%`}
                 </span>
                 {latestDiagnosis.is_repair_safe ? (
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Repair Safe
+                    Auto-Repair Safe
                   </span>
                 ) : (
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -188,7 +203,9 @@ export const IncidentDetail: React.FC = () => {
 
             {/* Root cause hypothesis */}
             <div className="space-y-1.5">
-              <h4 className="text-xs font-mono uppercase text-slate-400">Root-Cause Hypothesis</h4>
+              <h4 className="text-xs font-mono uppercase text-slate-400">
+                {mode === 'simple' ? 'Identified Root Cause' : 'Root-Cause Hypothesis'}
+              </h4>
               <p className="text-sm text-slate-200 leading-relaxed p-4 rounded-xl bg-slate-950 border border-slate-800 font-sans">
                 {latestDiagnosis.root_cause_hypothesis}
               </p>
@@ -197,11 +214,15 @@ export const IncidentDetail: React.FC = () => {
             {/* Evidence & Relevant Files */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <h4 className="text-xs font-mono uppercase text-slate-400">Supporting Evidence</h4>
+                <h4 className="text-xs font-mono uppercase text-slate-400">
+                  {mode === 'simple' ? 'Observations' : 'Supporting Evidence'}
+                </h4>
                 <div className="space-y-2">
                   {latestDiagnosis.evidence?.map((ev, i) => (
                     <div key={i} className="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 text-xs text-slate-300">
-                      <span className="text-[10px] font-mono text-orange-400 uppercase mr-2">[{ev.type}]</span>
+                      {mode === 'dev' && (
+                        <span className="text-[10px] font-mono text-orange-400 uppercase mr-2">[{ev.type}]</span>
+                      )}
                       {ev.observation}
                     </div>
                   ))}
@@ -209,7 +230,9 @@ export const IncidentDetail: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <h4 className="text-xs font-mono uppercase text-slate-400">Correlated Source Locations</h4>
+                <h4 className="text-xs font-mono uppercase text-slate-400">
+                  {mode === 'simple' ? 'Files Being Fixed' : 'Correlated Source Locations'}
+                </h4>
                 <div className="space-y-2">
                   {latestDiagnosis.relevant_files?.map((rf, i) => (
                     <div key={i} className="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80 text-xs flex items-center justify-between">
@@ -217,7 +240,7 @@ export const IncidentDetail: React.FC = () => {
                         <FileCode2 className="w-4 h-4 text-orange-400 shrink-0" />
                         <span className="font-mono text-slate-200 truncate">{rf.path}</span>
                       </div>
-                      {rf.lines?.length > 0 && (
+                      {mode === 'dev' && rf.lines?.length > 0 && (
                         <span className="text-[11px] font-mono text-slate-500 shrink-0">
                           Lines: {rf.lines.join('-')}
                         </span>

@@ -10,12 +10,16 @@ import {
   Settings, 
   LogOut,
   Flame,
-  Terminal
+  Terminal,
+  Eye,
+  Code2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useMode } from '../context/ModeContext';
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { mode, toggleMode } = useMode();
 
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -23,8 +27,8 @@ export const Sidebar: React.FC = () => {
     { to: '/incidents', label: 'Incidents', icon: AlertTriangle },
     { to: '/repairs', label: 'Repairs & Diffs', icon: Wrench },
     { to: '/approvals', label: 'Approvals Gate', icon: CheckCircle2 },
-    { to: '/mcp', label: 'MCP & Agents', icon: Terminal },
-    { to: '/audit', label: 'Audit Trail', icon: ScrollText },
+    { to: '/mcp', label: 'MCP & Agents', icon: Terminal, devOnly: true },
+    { to: '/audit', label: 'Audit Trail', icon: ScrollText, devOnly: true },
     { to: '/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -55,19 +59,45 @@ export const Sidebar: React.FC = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                `flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-gradient-to-r from-orange-500/20 to-orange-500/5 text-orange-400 border-l-4 border-orange-500'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`
               }
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
+              <div className="flex items-center space-x-3">
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+              </div>
+              {item.devOnly && mode === 'simple' && (
+                <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-500 border border-slate-700/60">
+                  Dev
+                </span>
+              )}
             </NavLink>
           );
         })}
       </nav>
+
+      {/* Mode Switcher Pill */}
+      <div className="px-3 pb-3">
+        <button
+          onClick={toggleMode}
+          className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+            mode === 'simple'
+              ? 'bg-amber-500/10 border-amber-500/20 text-amber-300 hover:bg-amber-500/20'
+              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 font-mono'
+          }`}
+          title="Click to toggle between Simple Executive View and Dev Inspector Mode (⌘D)"
+        >
+          <div className="flex items-center gap-2">
+            {mode === 'simple' ? <Eye className="w-4 h-4 text-amber-400" /> : <Code2 className="w-4 h-4 text-emerald-400" />}
+            <span className="font-semibold">{mode === 'simple' ? 'Simple Mode' : 'Dev Mode Active'}</span>
+          </div>
+          <span className="text-[10px] opacity-75 underline">Switch</span>
+        </button>
+      </div>
 
       {/* User Footer */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/60">

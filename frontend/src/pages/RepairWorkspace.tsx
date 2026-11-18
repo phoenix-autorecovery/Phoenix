@@ -194,6 +194,23 @@ export const RepairWorkspace: React.FC = () => {
           </div>
         </div>
 
+        {/* MODE BANNER */}
+        {mode === 'simple' ? (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span className="font-bold">🌿 Simple Mode:</span> Showing plain-English defect summary & 1-click delivery. Switch to Dev Mode for unified git diffs & terminal execution logs.
+            </span>
+            <span className="text-[11px] font-mono text-amber-400">Toggle via top-right (⌘D)</span>
+          </div>
+        ) : (
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between font-mono">
+            <span className="flex items-center gap-2">
+              <span className="font-bold">⚡ Dev Inspector Mode:</span> Unified git diffs, sandbox terminal stderr/stdout, SHA-256 patch hashes, and AST security policy checks enabled.
+            </span>
+            <span className="text-[11px] text-emerald-400">Toggle via top-right (⌘D)</span>
+          </div>
+        )}
+
         {/* DUAL-MODE VIEW RENDERING */}
         {mode === 'simple' ? (
           /* SIMPLE EXECUTIVE VIEW */
