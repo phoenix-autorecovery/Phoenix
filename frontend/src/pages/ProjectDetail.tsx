@@ -20,9 +20,11 @@ import { Navbar } from '../components/Navbar';
 import { NewIncidentModal } from '../components/NewIncidentModal';
 import { api } from '../api/client';
 import { Project, ProjectProfile, Incident } from '../types';
+import { useMode } from '../context/ModeContext';
 
 export const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { mode } = useMode();
   const [project, setProject] = useState<Project | null>(null);
   const [profile, setProfile] = useState<ProjectProfile | null>(null);
   const [files, setFiles] = useState<{ path: string; size_bytes: number }[]>([]);

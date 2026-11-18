@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ModeProvider } from './context/ModeContext';
+import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Projects } from './pages/Projects';
@@ -15,10 +17,22 @@ import { Register } from './pages/Register';
 
 const ProtectedLayout: React.FC = () => {
   const { user, loading } = useAuth();
+  const [isCmdOpen, setIsCmdOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-950 text-slate-500 font-mono text-xs">
+      <div className="h-screen w-screen flex items-center justify-center bg-zinc-950 text-zinc-500 font-mono text-xs">
         Initializing PHOENIX platform...
       </div>
     );
@@ -29,7 +43,7 @@ const ProtectedLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
       <Sidebar />
       <Routes>
         <Route path="/" element={<Dashboard />} />
@@ -44,6 +58,7 @@ const ProtectedLayout: React.FC = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <CommandPalette isOpen={isCmdOpen} onClose={() => setIsCmdOpen(false)} />
     </div>
   );
 };
@@ -51,13 +66,15 @@ const ProtectedLayout: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/*" element={<ProtectedLayout />} />
-        </Routes>
-      </BrowserRouter>
+      <ModeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/*" element={<ProtectedLayout />} />
+          </Routes>
+        </BrowserRouter>
+      </ModeProvider>
     </AuthProvider>
   );
 };
