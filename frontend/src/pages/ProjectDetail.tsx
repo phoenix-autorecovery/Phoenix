@@ -129,7 +129,7 @@ export const ProjectDetail: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </Link>
-            {user?.role !== 'auditor' && (
+            {(user?.role === 'admin' || user?.role === 'developer') && (
               <button
                 onClick={() => setIsNewIncidentOpen(true)}
                 className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all"
@@ -201,7 +201,7 @@ export const ProjectDetail: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {mode === 'dev' && (
+              {user?.role === 'admin' && mode === 'dev' && (
                 <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
                   <Cpu className="w-4 h-4 text-orange-400" />
                   <span className="text-xs text-slate-400">AI Model:</span>
@@ -218,38 +218,44 @@ export const ProjectDetail: React.FC = () => {
                 </div>
               )}
 
-              <button
-                onClick={handleScan}
-                disabled={scanRunning || autoPilotRunning}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-50 transition-all"
-              >
-                {scanRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                <span>{mode === 'simple' ? 'Check Health' : 'Scan Workspace'}</span>
-              </button>
+              {(user?.role === 'admin' || user?.role === 'developer') ? (
+                <>
+                  <button
+                    onClick={handleScan}
+                    disabled={scanRunning || autoPilotRunning}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 disabled:opacity-50 transition-all"
+                  >
+                    {scanRunning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    <span>{mode === 'simple' ? 'Check Health' : 'Scan Workspace'}</span>
+                  </button>
 
-              <button
-                onClick={handleTriggerAutoPilot}
-                disabled={autoPilotRunning || scanRunning || user?.role === 'auditor'}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg ${
-                  user?.role === 'auditor'
-                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-600/30'
-                } disabled:opacity-50`}
-              >
-                {autoPilotRunning ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Auto-Healing Workspace...</span>
-                  </>
-                ) : user?.role === 'auditor' ? (
-                  <span>Auditor: Read-Only View</span>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4" />
-                    <span>{mode === 'simple' ? 'One-Click Auto-Heal' : 'Auto-Heal Project Now'}</span>
-                  </>
-                )}
-              </button>
+                  <button
+                    onClick={handleTriggerAutoPilot}
+                    disabled={autoPilotRunning || scanRunning}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-600/30 disabled:opacity-50"
+                  >
+                    {autoPilotRunning ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Auto-Healing Workspace...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        <span>{mode === 'simple' ? 'One-Click Auto-Heal' : 'Auto-Heal Project Now'}</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : user?.role === 'reviewer' ? (
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Reviewer Inspection Gate
+                </span>
+              ) : (
+                <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-3.5 py-2 rounded-xl border border-purple-500/20 font-semibold flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Auditor Compliance View
+                </span>
+              )}
             </div>
           </div>
 
@@ -362,12 +368,14 @@ export const ProjectDetail: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 text-orange-400" />
                 {mode === 'simple' ? `Identified Software Issues (${incidents.length})` : `Active & Past Incidents (${incidents.length})`}
               </h3>
-              <button
-                onClick={() => setIsNewIncidentOpen(true)}
-                className="text-xs text-orange-400 hover:text-orange-300 font-semibold"
-              >
-                + Investigate Issue
-              </button>
+              {(user?.role === 'admin' || user?.role === 'developer') && (
+                <button
+                  onClick={() => setIsNewIncidentOpen(true)}
+                  className="text-xs text-orange-400 hover:text-orange-300 font-semibold"
+                >
+                  + Investigate Issue
+                </button>
+              )}
             </div>
 
             <div className="flex-1 max-h-[400px] overflow-y-auto space-y-3 pr-2">

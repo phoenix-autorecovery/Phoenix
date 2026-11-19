@@ -16,12 +16,14 @@ import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useMode } from '../context/ModeContext';
+import { useAuth } from '../context/AuthContext';
 import { Incident } from '../types';
 
 export const IncidentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mode } = useMode();
+  const { user } = useAuth();
   const { success, error } = useToast();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,24 +100,34 @@ export const IncidentDetail: React.FC = () => {
               <span>Workspace</span>
             </Link>
 
-            {!latestDiagnosis ? (
-              <button
-                onClick={handleDiagnose}
-                disabled={diagnosing}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all"
-              >
-                {diagnosing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
-                <span>{diagnosing ? 'Analyzing Stack...' : 'Run Software Intelligence'}</span>
-              </button>
+            {(user?.role === 'admin' || user?.role === 'developer') ? (
+              !latestDiagnosis ? (
+                <button
+                  onClick={handleDiagnose}
+                  disabled={diagnosing}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all"
+                >
+                  {diagnosing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
+                  <span>{diagnosing ? 'Analyzing Stack...' : 'Run Software Intelligence'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleGenerateRepair}
+                  disabled={repairing}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
+                >
+                  {repairing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+                  <span>{repairing ? 'Generating & Validating...' : 'Generate Candidate Repair'}</span>
+                </button>
+              )
+            ) : user?.role === 'reviewer' ? (
+              <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 font-medium">
+                Reviewer Mode
+              </span>
             ) : (
-              <button
-                onClick={handleGenerateRepair}
-                disabled={repairing}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
-              >
-                {repairing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
-                <span>{repairing ? 'Generating & Validating...' : 'Generate Candidate Repair'}</span>
-              </button>
+              <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 font-medium">
+                Auditor Read-Only
+              </span>
             )}
           </div>
         }
@@ -252,32 +264,38 @@ export const IncidentDetail: React.FC = () => {
             </div>
 
             {/* Action Bar */}
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
-              <button
-                onClick={handleGenerateRepair}
-                disabled={repairing}
-                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
-              >
-                {repairing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
-                <span>{repairing ? 'Synthesizing & Validating Patch...' : 'Synthesize Candidate Patch & Verify'}</span>
-              </button>
-            </div>
+            {(user?.role === 'admin' || user?.role === 'developer') && (
+              <div className="pt-4 border-t border-slate-800 flex justify-end">
+                <button
+                  onClick={handleGenerateRepair}
+                  disabled={repairing}
+                  className="px-6 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
+                >
+                  {repairing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+                  <span>{repairing ? 'Synthesizing & Validating Patch...' : 'Synthesize Candidate Patch & Verify'}</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-12 text-center rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
             <BrainCircuit className="w-12 h-12 text-orange-400 mx-auto" />
             <h3 className="text-base font-bold text-slate-200">Incident Needs Software Intelligence Diagnosis</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              Run PHOENIX's automated diagnosis engine to parse error patterns, search project files, and formulate a verifiable root-cause hypothesis.
+              {(user?.role === 'admin' || user?.role === 'developer')
+                ? "Run PHOENIX's automated diagnosis engine to parse error patterns, search project files, and formulate a verifiable root-cause hypothesis."
+                : "Diagnosis is pending. Development engineers will analyze the stack trace and generate candidate repairs."}
             </p>
-            <button
-              onClick={handleDiagnose}
-              disabled={diagnosing}
-              className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white inline-flex items-center gap-2 shadow-lg shadow-orange-600/20 transition-all"
-            >
-              {diagnosing && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>{diagnosing ? 'Diagnosing...' : 'Start Diagnosis'}</span>
-            </button>
+            {(user?.role === 'admin' || user?.role === 'developer') && (
+              <button
+                onClick={handleDiagnose}
+                disabled={diagnosing}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white inline-flex items-center gap-2 shadow-lg shadow-orange-600/20 transition-all"
+              >
+                {diagnosing && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{diagnosing ? 'Diagnosing...' : 'Start Diagnosis'}</span>
+              </button>
+            )}
           </div>
         )}
       </main>

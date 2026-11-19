@@ -79,13 +79,21 @@ export const Settings: React.FC = () => {
             <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
             <span>Loading system configuration...</span>
           </div>
+        ) : user?.role !== 'admin' ? (
+          <div className="p-12 text-center rounded-2xl bg-slate-900 border border-slate-800 max-w-lg mx-auto space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 mx-auto flex items-center justify-center">
+              <Shield className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-200">Administrator Access Required</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              System credentials, model parameters, API integrations, and sandbox network limits can only be configured by system administrators.
+            </p>
+            <span className="inline-block text-[11px] font-mono px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+              Current Role: <strong className="text-orange-400 uppercase">{user?.role}</strong>
+            </span>
+          </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
-            {user?.role !== 'admin' && (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
-                <span>🔒 Read-Only View: System settings, API credentials, and network isolation policies can only be modified by Administrators (current role: <strong className="font-mono text-white">{user?.role}</strong>).</span>
-              </div>
-            )}
 
             {success && (
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">

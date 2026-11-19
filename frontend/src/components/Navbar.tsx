@@ -3,6 +3,7 @@ import { ShieldCheck, ShieldAlert, Activity, Search, Eye, Code2, Sparkles, Termi
 import { api } from '../api/client';
 import { useMode } from '../context/ModeContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
   title: string;
@@ -13,6 +14,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ title, subtitle, actionButton }) => {
   const [healthy, setHealthy] = useState<boolean | null>(null);
   const { mode, setMode } = useMode();
+  const { user } = useAuth();
   const { success } = useToast();
 
   useEffect(() => {
@@ -48,15 +50,17 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle, actionButton })
             <h2 className="text-sm font-semibold text-zinc-100 flex items-center gap-2 tracking-tight">
               {title}
             </h2>
-            <span
-              className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border transition-all ${
-                mode === 'simple'
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-mono'
-              }`}
-            >
-              {mode === 'simple' ? '🌿 Simple View' : '⚡ Dev Mode'}
-            </span>
+            {user?.role === 'admin' && (
+              <span
+                className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border transition-all ${
+                  mode === 'simple'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-mono'
+                }`}
+              >
+                {mode === 'simple' ? '🌿 Simple View' : '⚡ Dev Mode'}
+              </span>
+            )}
           </div>
           {subtitle && <p className="text-[11px] text-zinc-500 font-mono truncate max-w-md">{subtitle}</p>}
         </div>
@@ -73,33 +77,35 @@ export const Navbar: React.FC<NavbarProps> = ({ title, subtitle, actionButton })
           <kbd className="font-mono text-[10px] bg-zinc-800 text-zinc-400 px-1 py-0.2 rounded border border-zinc-700">⌘K</kbd>
         </button>
 
-        {/* Dual-Mode Toggle: Simple View vs Dev Mode */}
-        <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs shadow-inner">
-          <button
-            onClick={() => handleSetMode('simple')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
-              mode === 'simple'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-            title="Simple View: Non-technical overview of defects and plain-English solutions"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span>Simple</span>
-          </button>
-          <button
-            onClick={() => handleSetMode('dev')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
-              mode === 'dev'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm font-mono font-bold'
-                : 'text-zinc-400 hover:text-zinc-200 font-mono'
-            }`}
-            title="Dev Mode: Raw AST, microsecond test logs, unified diff hunks, and Groq token telemetry (⌘D)"
-          >
-            <Code2 className="w-3.5 h-3.5" />
-            <span>Dev Mode</span>
-          </button>
-        </div>
+        {/* Dual-Mode Toggle: Only for Admin */}
+        {user?.role === 'admin' && (
+          <div className="flex items-center p-0.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs shadow-inner">
+            <button
+              onClick={() => handleSetMode('simple')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
+                mode === 'simple'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold shadow-sm'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Simple View: Non-technical overview of defects and plain-English solutions"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Simple</span>
+            </button>
+            <button
+              onClick={() => handleSetMode('dev')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-medium transition-all ${
+                mode === 'dev'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm font-mono font-bold'
+                  : 'text-zinc-400 hover:text-zinc-200 font-mono'
+              }`}
+              title="Dev Mode: Raw AST, microsecond test logs, unified diff hunks, and Groq token telemetry (⌘D)"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Dev Mode</span>
+            </button>
+          </div>
+        )}
 
         {/* Sandbox Health Indicator */}
         <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-zinc-900/60 border border-zinc-800 text-[11px]">

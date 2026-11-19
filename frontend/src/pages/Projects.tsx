@@ -18,10 +18,12 @@ import { ImportProjectModal } from '../components/ImportProjectModal';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useMode } from '../context/ModeContext';
+import { useAuth } from '../context/AuthContext';
 import { Project } from '../types';
 
 export const Projects: React.FC = () => {
   const { mode } = useMode();
+  const { user } = useAuth();
   const { success, error } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,13 +61,15 @@ export const Projects: React.FC = () => {
         title="Project Workspaces"
         subtitle="Universal workspace manager for GitHub repos, ZIP archives, and local companion folders"
         actionButton={
-          <button
-            onClick={() => setIsImportOpen(true)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Import Project</span>
-          </button>
+          (user?.role === 'admin' || user?.role === 'developer') ? (
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Import Project</span>
+            </button>
+          ) : undefined
         }
       />
 
@@ -80,16 +84,20 @@ export const Projects: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 mx-auto flex items-center justify-center">
               <FolderGit2 className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-slate-200">No Projects Imported</h3>
+            <h3 className="text-base font-bold text-slate-200">No Projects Found</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Connect a GitHub repository URL, upload a software project ZIP, or use the companion CLI to synchronize your local workspace.
+              {(user?.role === 'admin' || user?.role === 'developer')
+                ? "Connect a GitHub repository URL, upload a software project ZIP, or use the companion CLI to synchronize your local workspace."
+                : "No projects have been ingested for review or audit in this workspace yet."}
             </p>
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white transition-all inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" /> Import First Workspace
-            </button>
+            {(user?.role === 'admin' || user?.role === 'developer') && (
+              <button
+                onClick={() => setIsImportOpen(true)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white transition-all inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Import First Workspace
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -149,7 +157,7 @@ export const Projects: React.FC = () => {
                       )}
                     </div>
 
-                    {mode === 'dev' && proj.content_fingerprint && (
+                    {user?.role === 'admin' && mode === 'dev' && proj.content_fingerprint && (
                       <div className="text-[10px] font-mono text-slate-500 truncate pt-1">
                         SHA-256: <span className="text-slate-400">{proj.content_fingerprint.slice(0, 20)}...</span>
                       </div>
@@ -157,7 +165,7 @@ export const Projects: React.FC = () => {
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-                    {mode === 'dev' ? (
+                    {user?.role === 'admin' ? (
                       <button
                         onClick={() => handleDelete(proj.id, proj.name)}
                         title="Delete project workspace"
@@ -166,7 +174,7 @@ export const Projects: React.FC = () => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     ) : (
-                      <span className="text-[11px] text-slate-500">Auto-Healing Ready</span>
+                      <span className="text-[11px] text-slate-500 font-medium">Protected Workspace</span>
                     )}
 
                     <Link

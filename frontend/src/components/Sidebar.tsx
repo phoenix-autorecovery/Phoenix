@@ -21,16 +21,20 @@ export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
   const { mode, toggleMode } = useMode();
 
-  const navItems = [
-    { to: '/', label: 'Overview', icon: LayoutDashboard },
-    { to: '/projects', label: 'Projects', icon: FolderGit2 },
-    { to: '/incidents', label: 'Incidents', icon: AlertTriangle },
-    { to: '/repairs', label: 'Repairs & Diffs', icon: Wrench },
-    { to: '/approvals', label: 'Approvals Gate', icon: CheckCircle2 },
-    { to: '/mcp', label: 'MCP & Agents', icon: Terminal, devOnly: true },
-    { to: '/audit', label: 'Audit Trail', icon: ScrollText, devOnly: true },
-    { to: '/settings', label: 'Settings', icon: Settings },
+  // Role-specific streamlined navigation: non-admins only see what they need
+  const allNavItems = [
+    { to: '/', label: 'Overview', icon: LayoutDashboard, roles: ['admin', 'developer', 'reviewer', 'auditor'] },
+    { to: '/projects', label: 'Projects', icon: FolderGit2, roles: ['admin', 'developer', 'reviewer', 'auditor'] },
+    { to: '/incidents', label: 'Incidents', icon: AlertTriangle, roles: ['admin', 'developer', 'reviewer', 'auditor'] },
+    { to: '/repairs', label: 'Repairs & Diffs', icon: Wrench, roles: ['admin', 'developer', 'reviewer', 'auditor'] },
+    { to: '/approvals', label: 'Approvals Gate', icon: CheckCircle2, roles: ['admin', 'developer', 'reviewer'] },
+    { to: '/mcp', label: 'MCP & Agents', icon: Terminal, roles: ['admin'] },
+    { to: '/audit', label: 'Audit Trail', icon: ScrollText, roles: ['admin', 'auditor'] },
+    { to: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
   ];
+
+  const userRole = user?.role || 'developer';
+  const navItems = allNavItems.filter((item) => item.roles.includes(userRole));
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen sticky top-0 select-none">
@@ -70,34 +74,31 @@ export const Sidebar: React.FC = () => {
                 <Icon className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
               </div>
-              {item.devOnly && mode === 'simple' && (
-                <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-500 border border-slate-700/60">
-                  Dev
-                </span>
-              )}
             </NavLink>
           );
         })}
       </nav>
 
-      {/* Mode Switcher Pill */}
-      <div className="px-3 pb-3">
-        <button
-          onClick={toggleMode}
-          className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
-            mode === 'simple'
-              ? 'bg-amber-500/10 border-amber-500/20 text-amber-300 hover:bg-amber-500/20'
-              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 font-mono'
-          }`}
-          title="Click to toggle between Simple Executive View and Dev Inspector Mode (⌘D)"
-        >
-          <div className="flex items-center gap-2">
-            {mode === 'simple' ? <Eye className="w-4 h-4 text-amber-400" /> : <Code2 className="w-4 h-4 text-emerald-400" />}
-            <span className="font-semibold">{mode === 'simple' ? 'Simple Mode' : 'Dev Mode Active'}</span>
-          </div>
-          <span className="text-[10px] opacity-75 underline">Switch</span>
-        </button>
-      </div>
+      {/* Mode Switcher Pill - Admin Only to keep UI simple for everyone else */}
+      {userRole === 'admin' && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={toggleMode}
+            className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+              mode === 'simple'
+                ? 'bg-amber-500/10 border-amber-500/20 text-amber-300 hover:bg-amber-500/20'
+                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 font-mono'
+            }`}
+            title="Click to toggle between Simple Executive View and Dev Inspector Mode (⌘D)"
+          >
+            <div className="flex items-center gap-2">
+              {mode === 'simple' ? <Eye className="w-4 h-4 text-amber-400" /> : <Code2 className="w-4 h-4 text-emerald-400" />}
+              <span className="font-semibold">{mode === 'simple' ? 'Simple Mode' : 'Dev Mode Active'}</span>
+            </div>
+            <span className="text-[10px] opacity-75 underline">Switch</span>
+          </button>
+        </div>
+      )}
 
       {/* User Footer */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/60">

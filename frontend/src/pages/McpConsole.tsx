@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { Terminal, Shield, Cpu, RefreshCw, Play, Database, BookOpen, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface ToolDef {
@@ -30,6 +31,7 @@ interface PromptDef {
 }
 
 export const McpConsole: React.FC = () => {
+  const { user } = useAuth();
   const { success, error } = useToast();
   const [activeTab, setActiveTab] = useState<'tools' | 'resources' | 'prompts' | 'servers'>('tools');
   const [tools, setTools] = useState<ToolDef[]>([]);
@@ -151,35 +153,49 @@ export const McpConsole: React.FC = () => {
         subtitle="Universal tool execution gateway, resource reader, and prompt templates"
       />
 
-      <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs text-zinc-500 uppercase tracking-widest">Protocol Core 2026-07-28</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 font-mono">
-                Stateless Gateway
-              </span>
-            </div>
-            <h1 className="text-xl font-medium tracking-tight text-zinc-100 mt-1">
-              Model Context Protocol (MCP) Console
-            </h1>
-            <p className="text-xs text-zinc-400 mt-1 max-w-2xl font-mono">
-              Interoperability bridge exposing PHOENIX AST analysis, deterministic sandbox execution, and cryptographic governance to external AI models and IDE clients.
-            </p>
+      {user?.role !== 'admin' ? (
+        <div className="p-12 text-center rounded-2xl bg-zinc-900 border border-zinc-800 max-w-lg mx-auto space-y-4 my-16">
+          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 mx-auto flex items-center justify-center">
+            <Shield className="w-6 h-6" />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchMcpData}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Sync Registry
-            </button>
-          </div>
+          <h3 className="text-base font-bold text-zinc-200">Administrator Access Required</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed font-mono">
+            Model Context Protocol (MCP) server dispatch, external agent connectors, and raw tool execution are restricted to Administrators.
+          </p>
+          <span className="inline-block text-[11px] font-mono px-3 py-1 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+            Current Role: <strong className="text-orange-400 uppercase">{user?.role}</strong>
+          </span>
         </div>
+      ) : (
+        <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-zinc-500 uppercase tracking-widest">Protocol Core 2026-07-28</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 font-mono">
+                  Stateless Gateway
+                </span>
+              </div>
+              <h1 className="text-xl font-medium tracking-tight text-zinc-100 mt-1">
+                Model Context Protocol (MCP) Console
+              </h1>
+              <p className="text-xs text-zinc-400 mt-1 max-w-2xl font-mono">
+                Interoperability bridge exposing PHOENIX AST analysis, deterministic sandbox execution, and cryptographic governance to external AI models and IDE clients.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchMcpData}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Sync Registry
+              </button>
+            </div>
+          </div>
 
         {/* Tab Selector */}
         <div className="flex items-center gap-1 border-b border-zinc-800/80 pb-px">
@@ -410,6 +426,7 @@ export const McpConsole: React.FC = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

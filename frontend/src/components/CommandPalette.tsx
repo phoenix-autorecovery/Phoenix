@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useMode } from '../context/ModeContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 
 interface CommandItem {
@@ -26,11 +27,13 @@ interface CommandItem {
   icon: React.ReactNode;
   action: () => void;
   shortcut?: string;
+  roles?: string[];
 }
 
 export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { mode, setMode, toggleMode } = useMode();
+  const { user } = useAuth();
   const { success, error } = useToast();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -54,6 +57,8 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
     }
   };
 
+  const userRole = user?.role || 'developer';
+
   const commands: CommandItem[] = [
     {
       id: 'toggle-mode',
@@ -62,6 +67,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       category: 'Mode',
       icon: <SlidersHorizontal className="w-4 h-4 text-zinc-400" />,
       shortcut: '⌘D',
+      roles: ['admin'],
       action: () => {
         toggleMode();
         onClose();
@@ -73,6 +79,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Overview of system telemetry, active sandboxes, and verification gates',
       category: 'Navigation',
       icon: <Terminal className="w-4 h-4 text-zinc-400" />,
+      roles: ['admin', 'developer', 'reviewer', 'auditor'],
       action: () => {
         navigate('/');
         onClose();
@@ -84,6 +91,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Browse all ingested repositories and monitored software roots',
       category: 'Navigation',
       icon: <FolderGit2 className="w-4 h-4 text-zinc-400" />,
+      roles: ['admin', 'developer', 'reviewer', 'auditor'],
       action: () => {
         navigate('/projects');
         onClose();
@@ -95,6 +103,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Inspect sign-offs bound to candidate patch SHA-256 hashes',
       category: 'Navigation',
       icon: <ShieldCheck className="w-4 h-4 text-zinc-400" />,
+      roles: ['admin', 'developer', 'reviewer'],
       action: () => {
         navigate('/approvals');
         onClose();
@@ -106,6 +115,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Inspect tamper-evident system ledger of every autonomous repair action',
       category: 'Navigation',
       icon: <FileText className="w-4 h-4 text-zinc-400" />,
+      roles: ['admin', 'auditor'],
       action: () => {
         navigate('/audit');
         onClose();
@@ -117,6 +127,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Inspect Model Context Protocol tools, run JSON-RPC gateway calls, and view prompts',
       category: 'Navigation',
       icon: <Terminal className="w-4 h-4 text-emerald-400" />,
+      roles: ['admin'],
       action: () => {
         navigate('/mcp');
         onClose();
@@ -128,6 +139,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Configure Groq API tokens, GitHub App credentials, and sandbox quotas',
       category: 'Navigation',
       icon: <SettingsIcon className="w-4 h-4 text-zinc-400" />,
+      roles: ['admin'],
       action: () => {
         navigate('/settings');
         onClose();
@@ -139,6 +151,7 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'High-capability multi-file root-cause reasoning and candidate synthesis',
       category: 'AI Model',
       icon: <Cpu className="w-4 h-4 text-emerald-400" />,
+      roles: ['admin'],
       action: () => switchModel('llama-3.1-70b-versatile')
     },
     {
@@ -147,11 +160,14 @@ export const CommandPalette: React.FC<{ isOpen: boolean; onClose: () => void }> 
       subtitle: 'Specialized high-precision programming and unified diff code repair',
       category: 'AI Model',
       icon: <Cpu className="w-4 h-4 text-blue-400" />,
+      roles: ['admin'],
       action: () => switchModel('qwen-2.5-coder-32b')
     }
   ];
 
-  const filtered = commands.filter((c) =>
+  const allowedCommands = commands.filter((c) => !c.roles || c.roles.includes(userRole));
+
+  const filtered = allowedCommands.filter((c) =>
     c.title.toLowerCase().includes(query.toLowerCase()) ||
     c.subtitle.toLowerCase().includes(query.toLowerCase()) ||
     c.category.toLowerCase().includes(query.toLowerCase())

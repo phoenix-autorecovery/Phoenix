@@ -196,21 +196,23 @@ export const RepairWorkspace: React.FC = () => {
           </div>
         </div>
 
-        {/* MODE BANNER */}
-        {mode === 'simple' ? (
-          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <span className="font-bold">🌿 Simple Mode:</span> Showing plain-English defect summary & 1-click delivery. Switch to Dev Mode for unified git diffs & terminal execution logs.
-            </span>
-            <span className="text-[11px] font-mono text-amber-400">Toggle via top-right (⌘D)</span>
-          </div>
-        ) : (
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between font-mono">
-            <span className="flex items-center gap-2">
-              <span className="font-bold">⚡ Dev Inspector Mode:</span> Unified git diffs, sandbox terminal stderr/stdout, SHA-256 patch hashes, and AST security policy checks enabled.
-            </span>
-            <span className="text-[11px] text-emerald-400">Toggle via top-right (⌘D)</span>
-          </div>
+        {/* MODE BANNER - Admin Only */}
+        {user?.role === 'admin' && (
+          mode === 'simple' ? (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="font-bold">🌿 Simple Mode:</span> Showing plain-English defect summary & 1-click delivery. Switch to Dev Mode for unified git diffs & terminal execution logs.
+              </span>
+              <span className="text-[11px] font-mono text-amber-400">Toggle via top-right (⌘D)</span>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200 flex items-center justify-between font-mono">
+              <span className="flex items-center gap-2">
+                <span className="font-bold">⚡ Dev Inspector Mode:</span> Unified git diffs, sandbox terminal stderr/stdout, SHA-256 patch hashes, and AST security policy checks enabled.
+              </span>
+              <span className="text-[11px] text-emerald-400">Toggle via top-right (⌘D)</span>
+            </div>
+          )
         )}
 
         {/* DUAL-MODE VIEW RENDERING */}
@@ -254,30 +256,36 @@ export const RepairWorkspace: React.FC = () => {
             </div>
 
             {/* Simple Delivery Hub */}
-            <div className="p-6 rounded-lg bg-zinc-900 border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h4 className="text-sm font-semibold text-zinc-100">Ready for Delivery</h4>
-                <p className="text-xs text-zinc-400 mt-0.5">Tests confirmed zero regressions. Approve candidate patch or deliver directly to GitHub.</p>
+            {user?.role === 'auditor' ? (
+              <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-purple-400" />
+                  Compliance Verification: SHA-256 bound and immutable.
+                </span>
+                <span className="text-purple-400 font-mono text-[11px] font-medium bg-purple-950/40 px-2.5 py-1 rounded border border-purple-800/40">
+                  Auditor Governance
+                </span>
               </div>
-              <div className="flex items-center gap-3">
-                {user?.role === 'auditor' ? (
-                  <span className="text-xs px-3.5 py-2 rounded-lg bg-purple-950/40 text-purple-300 border border-purple-800/60 font-medium">
-                    📋 Auditor View (Read-Only Sign-off)
-                  </span>
-                ) : (
-                  <>
-                    {job.status === 'awaiting_approval' && (
-                      <button
-                        onClick={handleApprove}
-                        disabled={actionLoading}
-                        className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
-                      >
-                        {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Approve & Finalize Fix</span>
-                      </button>
-                    )}
-                    {job.status === 'approved' && (
+            ) : (
+              <div className="p-6 rounded-lg bg-zinc-900 border border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-zinc-100">Ready for Delivery</h4>
+                  <p className="text-xs text-zinc-400 mt-0.5">Tests confirmed zero regressions. Approve candidate patch or deliver directly to GitHub.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {job.status === 'awaiting_approval' && (
+                    <button
+                      onClick={handleApprove}
+                      disabled={actionLoading}
+                      className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
+                    >
+                      {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Approve & Finalize Fix</span>
+                    </button>
+                  )}
+                  {job.status === 'approved' && (
+                    (user?.role === 'admin' || user?.role === 'developer') ? (
                       <button
                         onClick={handleCreatePR}
                         disabled={actionLoading}
@@ -286,11 +294,15 @@ export const RepairWorkspace: React.FC = () => {
                         {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
                         <span>Deliver via GitHub PR</span>
                       </button>
-                    )}
-                  </>
-                )}
+                    ) : (
+                      <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-3.5 py-2 rounded-lg border border-emerald-500/20 font-semibold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" /> Signed Off & Handed Off for PR Delivery
+                      </span>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           /* DEV / INSPECTOR MODE */
@@ -414,15 +426,19 @@ export const RepairWorkspace: React.FC = () => {
 
                     {job.status === 'approved' && (
                       <div className="pt-3 border-t border-zinc-800 space-y-3">
-                        <p className="text-xs text-emerald-400 font-medium">Patch approved. You can now open a GitHub Pull Request.</p>
-                        <button
-                          onClick={handleCreatePR}
-                          disabled={actionLoading}
-                          className="w-full py-2.5 rounded-md text-xs font-bold bg-zinc-100 hover:bg-white text-zinc-950 flex items-center justify-center gap-2 shadow"
-                        >
-                          {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
-                          <span>Open GitHub Pull Request</span>
-                        </button>
+                        <p className="text-xs text-emerald-400 font-medium">Patch approved with SHA-256 signature.</p>
+                        {(user?.role === 'admin' || user?.role === 'developer') ? (
+                          <button
+                            onClick={handleCreatePR}
+                            disabled={actionLoading}
+                            className="w-full py-2.5 rounded-md text-xs font-bold bg-zinc-100 hover:bg-white text-zinc-950 flex items-center justify-center gap-2 shadow"
+                          >
+                            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
+                            <span>Open GitHub Pull Request</span>
+                          </button>
+                        ) : (
+                          <p className="text-xs text-slate-400 font-mono">Ready for developer/admin GitHub pull request delivery.</p>
+                        )}
                       </div>
                     )}
                   </>
