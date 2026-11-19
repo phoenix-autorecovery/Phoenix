@@ -8,14 +8,14 @@ from backend.app.models.user import User
 from backend.app.models.project import Project
 from backend.app.models.incident import Incident, Diagnosis
 from backend.app.schemas.incident import IncidentCreate, IncidentResponse, DiagnosisResponse
-from backend.app.core.security import get_current_user
+from backend.app.core.security import get_current_user, require_roles
 from backend.app.core.audit import record_audit_event
 from backend.app.services.diagnosis import DiagnosisEngine
 
 router = APIRouter(prefix="/incidents", tags=["Incidents & Diagnosis"])
 
 @router.post("", response_model=IncidentResponse)
-def create_incident(inc_in: IncidentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_incident(inc_in: IncidentCreate, current_user: User = Depends(require_roles(["admin", "developer"])), db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == inc_in.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
@@ -53,7 +53,7 @@ def list_incidents(project_id: str = None, current_user: User = Depends(get_curr
     query = db.query(Incident).join(Project)
     if project_id:
         query = query.filter(Incident.project_id == project_id)
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "reviewer", "auditor"]:
         query = query.filter(Project.user_id == current_user.id)
     return query.order_by(Incident.created_at.desc()).all()
 
@@ -62,16 +62,16 @@ def get_incident(incident_id: str, current_user: User = Depends(get_current_user
     incident = db.query(Incident).join(Project).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found.")
-    if incident.project.user_id != current_user.id and current_user.role != "admin":
+    if incident.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
     return incident
 
 @router.post("/{incident_id}/diagnose", response_model=DiagnosisResponse)
-def trigger_diagnosis(incident_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def trigger_diagnosis(incident_id: str, current_user: User = Depends(require_roles(["admin", "developer", "reviewer"])), db: Session = Depends(get_db)):
     incident = db.query(Incident).join(Project).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found.")
-    if incident.project.user_id != current_user.id and current_user.role != "admin":
+    if incident.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     incident.status = "diagnosing"

@@ -22,9 +22,11 @@ import { api } from '../api/client';
 import { Project, ProjectProfile, Incident } from '../types';
 import { useMode } from '../context/ModeContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { mode } = useMode();
   const { success, error } = useToast();
   const [project, setProject] = useState<Project | null>(null);
@@ -127,13 +129,15 @@ export const ProjectDetail: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </Link>
-            <button
-              onClick={() => setIsNewIncidentOpen(true)}
-              className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Report Incident</span>
-            </button>
+            {user?.role !== 'auditor' && (
+              <button
+                onClick={() => setIsNewIncidentOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/20 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Report Incident</span>
+              </button>
+            )}
           </div>
         }
       />
@@ -225,14 +229,20 @@ export const ProjectDetail: React.FC = () => {
 
               <button
                 onClick={handleTriggerAutoPilot}
-                disabled={autoPilotRunning || scanRunning}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-lg shadow-orange-600/30 disabled:opacity-50 transition-all"
+                disabled={autoPilotRunning || scanRunning || user?.role === 'auditor'}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-lg ${
+                  user?.role === 'auditor'
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-600/30'
+                } disabled:opacity-50`}
               >
                 {autoPilotRunning ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Auto-Healing Workspace...</span>
                   </>
+                ) : user?.role === 'auditor' ? (
+                  <span>Auditor: Read-Only View</span>
                 ) : (
                   <>
                     <Zap className="w-4 h-4" />

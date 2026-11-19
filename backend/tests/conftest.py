@@ -104,6 +104,40 @@ def other_token(other_user):
     return create_access_token({"sub": other_user.id, "role": other_user.role, "email": other_user.email})
 
 @pytest.fixture
+def reviewer_user(db_session):
+    user = User(
+        email="test_reviewer@phoenix.io",
+        hashed_password=get_password_hash("password123"),
+        full_name="Test Reviewer",
+        role="reviewer"
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+@pytest.fixture
+def reviewer_token(reviewer_user):
+    return create_access_token({"sub": reviewer_user.id, "role": reviewer_user.role, "email": reviewer_user.email})
+
+@pytest.fixture
+def auditor_user(db_session):
+    user = User(
+        email="test_auditor@phoenix.io",
+        hashed_password=get_password_hash("password123"),
+        full_name="Test Auditor",
+        role="auditor"
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+@pytest.fixture
+def auditor_token(auditor_user):
+    return create_access_token({"sub": auditor_user.id, "role": auditor_user.role, "email": auditor_user.email})
+
+@pytest.fixture
 def sample_buggy_zip():
     """Generates an in-memory ZIP containing a Python project with a reproducible bug and unit test."""
     calculator_code = """def calculate_total(items):

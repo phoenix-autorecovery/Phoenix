@@ -8,7 +8,7 @@ from backend.app.config import settings
 from backend.app.database import get_db
 from backend.app.models.user import User
 from backend.app.models.project import Project
-from backend.app.core.security import get_current_user
+from backend.app.core.security import get_current_user, require_roles
 from backend.app.services.detector import WorkspaceDefectDetector
 from backend.app.services.autopilot import AutoPilotService
 
@@ -35,7 +35,7 @@ def scan_project_defects(
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
-    if project.user_id != current_user.id and current_user.role != "admin":
+    if project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     workspace_dir = Path(project.root_path)
@@ -53,7 +53,7 @@ def scan_project_defects(
 def trigger_autonomous_recovery(
     project_id: str,
     req: AutoPilotRequest = AutoPilotRequest(),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "developer", "reviewer"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -67,7 +67,7 @@ def trigger_autonomous_recovery(
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
-    if project.user_id != current_user.id and current_user.role != "admin":
+    if project.user_id != current_user.id and current_user.role not in ["admin", "reviewer"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     result = AutoPilotService.run_autonomous_recovery(

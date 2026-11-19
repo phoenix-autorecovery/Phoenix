@@ -108,7 +108,15 @@ export const Sidebar: React.FC = () => {
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-slate-200 truncate">{user?.full_name || user?.email}</p>
-              <span className="inline-block text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 uppercase">
+              <span className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded-full border font-bold uppercase ${
+                user?.role === 'admin'
+                  ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                  : user?.role === 'reviewer'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : user?.role === 'auditor'
+                  ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                  : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+              }`}>
                 {user?.role}
               </span>
             </div>

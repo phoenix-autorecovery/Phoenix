@@ -10,7 +10,7 @@ from backend.app.models.project import Project
 from backend.app.models.incident import Incident
 from backend.app.models.repair import RepairJob, CandidatePatch, Approval, PullRequestRecord, ValidationRun
 from backend.app.schemas.repair import PullRequestCreate, PullRequestResponse
-from backend.app.core.security import get_current_user
+from backend.app.core.security import get_current_user, require_roles
 from backend.app.core.audit import record_audit_event
 from backend.app.services.delivery import DeliveryService
 from backend.app.services.sandbox import SandboxExecutionEngine
@@ -28,7 +28,7 @@ def download_repair_artifact(
     job = db.query(RepairJob).join(Project).filter(RepairJob.id == repair_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Repair job not found.")
-    if job.project.user_id != current_user.id and current_user.role != "admin":
+    if job.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     patch = db.query(CandidatePatch).filter(CandidatePatch.repair_job_id == repair_id).order_by(CandidatePatch.created_at.desc()).first()
@@ -62,13 +62,13 @@ def download_repair_artifact(
 def open_pull_request(
     repair_id: str,
     req: PullRequestCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "developer", "reviewer"])),
     db: Session = Depends(get_db)
 ):
     job = db.query(RepairJob).join(Project).filter(RepairJob.id == repair_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Repair job not found.")
-    if job.project.user_id != current_user.id and current_user.role != "admin":
+    if job.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     # Authorization gate: check approval exists

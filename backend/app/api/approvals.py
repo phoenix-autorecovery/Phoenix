@@ -79,12 +79,14 @@ def approve_repair(
 def reject_repair(
     repair_id: str,
     req: ApprovalCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "reviewer", "developer"])),
     db: Session = Depends(get_db)
 ):
     job = db.query(RepairJob).join(Project).filter(RepairJob.id == repair_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Repair job not found.")
+    if job.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
     
     patch = db.query(CandidatePatch).filter(CandidatePatch.repair_job_id == repair_id).order_by(CandidatePatch.created_at.desc()).first()
     if not patch:

@@ -1,10 +1,17 @@
+from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, EmailStr
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    DEVELOPER = "developer"
+    REVIEWER = "reviewer"
+    AUDITOR = "auditor"
 
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
-    role: str = "developer"
+    role: UserRole = UserRole.DEVELOPER
 
 class UserCreate(UserBase):
     password: str

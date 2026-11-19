@@ -19,7 +19,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     
     # First user registered automatically becomes admin
     user_count = db.query(User).count()
-    role = "admin" if user_count == 0 else user_in.role
+    role_str = user_in.role.value if hasattr(user_in.role, 'value') else str(user_in.role)
+    role = "admin" if user_count == 0 else role_str
 
     user = User(
         email=user_in.email,

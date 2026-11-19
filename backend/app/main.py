@@ -79,6 +79,28 @@ def seed_default_accounts():
             db.add(dev)
             logger.info("Seeded default developer account: developer@phoenix.io")
 
+        reviewer = db.query(User).filter(User.email == "reviewer@phoenix.io").first()
+        if not reviewer:
+            reviewer = User(
+                email="reviewer@phoenix.io",
+                hashed_password=get_password_hash("phoenix123"),
+                full_name="Phoenix Reviewer",
+                role="reviewer"
+            )
+            db.add(reviewer)
+            logger.info("Seeded default reviewer account: reviewer@phoenix.io")
+
+        auditor = db.query(User).filter(User.email == "auditor@phoenix.io").first()
+        if not auditor:
+            auditor = User(
+                email="auditor@phoenix.io",
+                hashed_password=get_password_hash("phoenix123"),
+                full_name="Phoenix Auditor",
+                role="auditor"
+            )
+            db.add(auditor)
+            logger.info("Seeded default auditor account: auditor@phoenix.io")
+
         db.commit()
     finally:
         db.close()

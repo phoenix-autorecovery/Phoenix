@@ -23,9 +23,11 @@ import { subscribeToRepairJobs } from '../api/supabase';
 import { RepairJob } from '../types';
 import { useMode } from '../context/ModeContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 export const RepairWorkspace: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { mode } = useMode();
   const { success, error } = useToast();
   const [job, setJob] = useState<RepairJob | null>(null);
@@ -258,26 +260,34 @@ export const RepairWorkspace: React.FC = () => {
                 <p className="text-xs text-zinc-400 mt-0.5">Tests confirmed zero regressions. Approve candidate patch or deliver directly to GitHub.</p>
               </div>
               <div className="flex items-center gap-3">
-                {job.status === 'awaiting_approval' && (
-                  <button
-                    onClick={handleApprove}
-                    disabled={actionLoading}
-                    className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
-                  >
-                    {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Approve & Finalize Fix</span>
-                  </button>
-                )}
-                {job.status === 'approved' && (
-                  <button
-                    onClick={handleCreatePR}
-                    disabled={actionLoading}
-                    className="px-5 py-2.5 rounded-md text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 shadow transition-all flex items-center gap-2"
-                  >
-                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
-                    <span>Deliver via GitHub PR</span>
-                  </button>
+                {user?.role === 'auditor' ? (
+                  <span className="text-xs px-3.5 py-2 rounded-lg bg-purple-950/40 text-purple-300 border border-purple-800/60 font-medium">
+                    📋 Auditor View (Read-Only Sign-off)
+                  </span>
+                ) : (
+                  <>
+                    {job.status === 'awaiting_approval' && (
+                      <button
+                        onClick={handleApprove}
+                        disabled={actionLoading}
+                        className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
+                      >
+                        {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Approve & Finalize Fix</span>
+                      </button>
+                    )}
+                    {job.status === 'approved' && (
+                      <button
+                        onClick={handleCreatePR}
+                        disabled={actionLoading}
+                        className="px-5 py-2.5 rounded-md text-xs font-semibold bg-zinc-100 hover:bg-white text-zinc-950 shadow transition-all flex items-center gap-2"
+                      >
+                        {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
+                        <span>Deliver via GitHub PR</span>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -365,47 +375,57 @@ export const RepairWorkspace: React.FC = () => {
                 </div>
 
                 {/* Decision Controls */}
-                {job.status === 'awaiting_approval' && (
-                  <div className="space-y-3 pt-3 border-t border-zinc-800">
-                    <input
-                      type="text"
-                      placeholder="Reviewer inspection notes (optional)..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-md bg-zinc-950 border border-zinc-700 text-zinc-200 text-xs focus:border-zinc-500 focus:outline-none"
-                    />
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={handleReject}
-                        disabled={actionLoading}
-                        className="flex-1 py-2.5 rounded-md text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition-colors"
-                      >
-                        Reject Patch
-                      </button>
-                      <button
-                        onClick={handleApprove}
-                        disabled={actionLoading}
-                        className="flex-1 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center justify-center gap-2"
-                      >
-                        {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        <span>Approve Candidate Patch</span>
-                      </button>
-                    </div>
+                {user?.role === 'auditor' ? (
+                  <div className="pt-3 border-t border-zinc-800">
+                    <p className="text-xs text-purple-400 font-mono bg-purple-950/20 p-3 rounded-md border border-purple-800/40">
+                      🔒 Auditor Role: Cryptographic verification view only. Approvals & delivery actions are restricted to Reviewers and Administrators.
+                    </p>
                   </div>
-                )}
+                ) : (
+                  <>
+                    {job.status === 'awaiting_approval' && (
+                      <div className="space-y-3 pt-3 border-t border-zinc-800">
+                        <input
+                          type="text"
+                          placeholder="Reviewer inspection notes (optional)..."
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-md bg-zinc-950 border border-zinc-700 text-zinc-200 text-xs focus:border-zinc-500 focus:outline-none"
+                        />
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={handleReject}
+                            disabled={actionLoading}
+                            className="flex-1 py-2.5 rounded-md text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition-colors"
+                          >
+                            Reject Patch
+                          </button>
+                          <button
+                            onClick={handleApprove}
+                            disabled={actionLoading}
+                            className="flex-1 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center justify-center gap-2"
+                          >
+                            {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            <span>Approve Candidate Patch</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
-                {job.status === 'approved' && (
-                  <div className="pt-3 border-t border-zinc-800 space-y-3">
-                    <p className="text-xs text-emerald-400 font-medium">Patch approved. You can now open a GitHub Pull Request.</p>
-                    <button
-                      onClick={handleCreatePR}
-                      disabled={actionLoading}
-                      className="w-full py-2.5 rounded-md text-xs font-bold bg-zinc-100 hover:bg-white text-zinc-950 flex items-center justify-center gap-2 shadow"
-                    >
-                      {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
-                      <span>Open GitHub Pull Request</span>
-                    </button>
-                  </div>
+                    {job.status === 'approved' && (
+                      <div className="pt-3 border-t border-zinc-800 space-y-3">
+                        <p className="text-xs text-emerald-400 font-medium">Patch approved. You can now open a GitHub Pull Request.</p>
+                        <button
+                          onClick={handleCreatePR}
+                          disabled={actionLoading}
+                          className="w-full py-2.5 rounded-md text-xs font-bold bg-zinc-100 hover:bg-white text-zinc-950 flex items-center justify-center gap-2 shadow"
+                        >
+                          {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
+                          <span>Open GitHub Pull Request</span>
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {prCreated && (

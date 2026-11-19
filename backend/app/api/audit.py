@@ -41,7 +41,7 @@ def get_audit_trail(
 
 @router.get("/monitoring/metrics", response_model=DashboardMetrics)
 def get_dashboard_metrics(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    user_filter = (Project.user_id == current_user.id) if current_user.role != "admin" else True
+    user_filter = (Project.user_id == current_user.id) if current_user.role not in ["admin", "reviewer", "auditor"] else True
 
     total_projects = db.query(Project).filter(user_filter).count()
     active_jobs = db.query(RepairJob).join(Project).filter(

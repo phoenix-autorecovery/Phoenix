@@ -7,7 +7,7 @@ from backend.app.database import get_db
 from backend.app.models.user import User
 from backend.app.models.project import Project, ProjectSnapshot
 from backend.app.schemas.project import ProjectResponse, GitHubImportRequest, LocalFolderManifestRequest
-from backend.app.core.security import get_current_user
+from backend.app.core.security import get_current_user, require_roles
 from backend.app.core.audit import record_audit_event
 from backend.app.services.ingestion import IngestionService
 from backend.app.services.intelligence import ProjectIntelligenceService
@@ -19,7 +19,7 @@ async def ingest_zip(
     name: str = Form(...),
     description: str = Form(None),
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "developer"])),
     db: Session = Depends(get_db)
 ):
     project_id = str(uuid.uuid4())
@@ -66,7 +66,7 @@ async def ingest_zip(
 @router.post("/github", response_model=ProjectResponse)
 def ingest_github(
     req: GitHubImportRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "developer"])),
     db: Session = Depends(get_db)
 ):
     project_id = str(uuid.uuid4())
@@ -115,7 +115,7 @@ def ingest_github(
 @router.post("/local", response_model=ProjectResponse)
 def ingest_local_manifest(
     req: LocalFolderManifestRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(["admin", "developer"])),
     db: Session = Depends(get_db)
 ):
     project_id = str(uuid.uuid4())

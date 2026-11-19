@@ -97,21 +97,35 @@ export const Login: React.FC = () => {
 
         {/* Quick Demo Credentials Fill */}
         <div className="pt-2 border-t border-slate-800 text-center space-y-2">
-          <p className="text-[11px] text-slate-500">Quick sign-in:</p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <p className="text-[11px] text-slate-500">Quick sign-in by role:</p>
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => handleQuickLogin('admin@phoenix.io', 'phoenix123')}
-              className="px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-xs font-semibold text-orange-300 border border-orange-500/40 shadow"
+              className="px-2.5 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-xs font-semibold text-orange-300 border border-orange-500/40 shadow text-left"
             >
-              🛡️ Administrator (Admin)
+              🛡️ Admin
             </button>
             <button
               type="button"
               onClick={() => handleQuickLogin('developer@phoenix.io', 'phoenix123')}
-              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-mono text-slate-300 border border-slate-700"
+              className="px-2.5 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-xs font-semibold text-blue-300 border border-blue-500/40 text-left"
             >
               💻 Developer
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('reviewer@phoenix.io', 'phoenix123')}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 text-left"
+            >
+              ⚖️ Reviewer
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickLogin('auditor@phoenix.io', 'phoenix123')}
+              className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-xs font-semibold text-purple-300 border border-purple-500/40 text-left"
+            >
+              📋 Auditor
             </button>
           </div>
         </div>

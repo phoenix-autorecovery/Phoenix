@@ -10,7 +10,7 @@ from backend.app.models.project import Project
 from backend.app.models.incident import Incident, Diagnosis
 from backend.app.models.repair import RepairJob, CandidatePatch, ValidationRun, Approval
 from backend.app.schemas.repair import RepairJobCreate, RepairJobResponse, ValidationRunResponse
-from backend.app.core.security import get_current_user
+from backend.app.core.security import get_current_user, require_roles
 from backend.app.core.audit import record_audit_event
 from backend.app.core.policy import PolicyEngine
 from backend.app.services.repair import RepairEngine
@@ -21,11 +21,11 @@ from backend.app.services.intelligence import ProjectIntelligenceService
 router = APIRouter(prefix="/repairs", tags=["Repair Engine & Validation"])
 
 @router.post("", response_model=RepairJobResponse)
-def create_repair_job(req: RepairJobCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_repair_job(req: RepairJobCreate, current_user: User = Depends(require_roles(["admin", "developer", "reviewer"])), db: Session = Depends(get_db)):
     incident = db.query(Incident).join(Project).filter(Incident.id == req.incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found.")
-    if incident.project.user_id != current_user.id and current_user.role != "admin":
+    if incident.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     diagnosis = db.query(Diagnosis).filter(Diagnosis.incident_id == incident.id).order_by(Diagnosis.created_at.desc()).first()
@@ -152,7 +152,7 @@ def list_repairs(incident_id: str = None, current_user: User = Depends(get_curre
     query = db.query(RepairJob).join(Project)
     if incident_id:
         query = query.filter(RepairJob.incident_id == incident_id)
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "reviewer", "auditor"]:
         query = query.filter(Project.user_id == current_user.id)
     jobs = query.order_by(RepairJob.created_at.desc()).all()
     return [_format_repair_job(j) for j in jobs]
@@ -162,12 +162,17 @@ def get_repair_job(repair_id: str, current_user: User = Depends(get_current_user
     job = db.query(RepairJob).join(Project).filter(RepairJob.id == repair_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Repair job not found.")
-    if job.project.user_id != current_user.id and current_user.role != "admin":
+    if job.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
     return _format_repair_job(job)
 
 @router.get("/{repair_id}/diff")
 def get_repair_diff(repair_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    job = db.query(RepairJob).join(Project).filter(RepairJob.id == repair_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Repair job not found.")
+    if job.project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
+        raise HTTPException(status_code=403, detail="Access denied.")
     patch = db.query(CandidatePatch).filter(CandidatePatch.repair_job_id == repair_id).order_by(CandidatePatch.created_at.desc()).first()
     if not patch:
         raise HTTPException(status_code=404, detail="No candidate patch found for this repair job.")

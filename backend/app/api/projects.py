@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 
 @router.get("", response_model=List[ProjectResponse])
 def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if current_user.role == "admin":
+    if current_user.role in ["admin", "reviewer", "auditor"]:
         return db.query(Project).order_by(Project.created_at.desc()).all()
     return db.query(Project).filter(Project.user_id == current_user.id).order_by(Project.created_at.desc()).all()
 
@@ -25,7 +25,7 @@ def get_project(project_id: str, current_user: User = Depends(get_current_user),
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
-    if project.user_id != current_user.id and current_user.role != "admin":
+    if project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied to this project.")
     return project
 
@@ -34,7 +34,7 @@ def get_project_profile(project_id: str, current_user: User = Depends(get_curren
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
-    if project.user_id != current_user.id and current_user.role != "admin":
+    if project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
     
     workspace_dir = Path(project.root_path)
@@ -50,7 +50,7 @@ def get_project_file_tree(project_id: str, current_user: User = Depends(get_curr
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found.")
-    if project.user_id != current_user.id and current_user.role != "admin":
+    if project.user_id != current_user.id and current_user.role not in ["admin", "reviewer", "auditor"]:
         raise HTTPException(status_code=403, detail="Access denied.")
 
     workspace_dir = Path(project.root_path)

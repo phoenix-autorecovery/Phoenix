@@ -3,9 +3,11 @@ import { Settings as SettingsIcon, Key, Github, Shield, CheckCircle2, Loader2, C
 import { Navbar } from '../components/Navbar';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { SystemSettings } from '../types';
 
 export const Settings: React.FC = () => {
+  const { user } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,12 @@ export const Settings: React.FC = () => {
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
+            {user?.role !== 'admin' && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
+                <span>🔒 Read-Only View: System settings, API credentials, and network isolation policies can only be modified by Administrators (current role: <strong className="font-mono text-white">{user?.role}</strong>).</span>
+              </div>
+            )}
+
             {success && (
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
@@ -215,11 +223,17 @@ export const Settings: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || user?.role !== 'admin'}
                 className="px-6 py-2.5 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white flex items-center gap-2 shadow-lg shadow-orange-600/20 disabled:opacity-50 transition-all"
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{saving ? 'Applying Configuration...' : 'Save Configuration'}</span>
+                <span>
+                  {user?.role !== 'admin'
+                    ? 'Admin Role Required to Save'
+                    : saving
+                    ? 'Applying Configuration...'
+                    : 'Save Configuration'}
+                </span>
               </button>
             </div>
           </form>
