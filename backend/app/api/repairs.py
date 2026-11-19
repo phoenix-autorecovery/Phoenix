@@ -121,6 +121,19 @@ def create_repair_job(req: RepairJobCreate, current_user: User = Depends(require
 
             if policy.allowed and policy.outcome in ["approve_for_delivery", "request_human_review"]:
                 repair_job.status = "awaiting_approval"
+                # Register pending Approval record so it surfaces immediately in Human Approval Gate
+                existing_approval = db.query(Approval).filter(Approval.repair_job_id == repair_job.id).first()
+                if not existing_approval:
+                    pending_appr = Approval(
+                        repair_job_id=repair_job.id,
+                        candidate_patch_id=candidate_patch.id,
+                        user_id=current_user.id,
+                        status="pending",
+                        patch_hash=patch_hash,
+                        base_commit=repair_job.base_commit,
+                        reviewer_notes="Candidate patch verified in isolated sandbox. Deterministic cryptographic sign-off required."
+                    )
+                    db.add(pending_appr)
             else:
                 repair_job.status = "rejected"
                 repair_job.error_message = "; ".join(policy.reasons)

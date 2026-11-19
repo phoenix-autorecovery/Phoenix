@@ -274,15 +274,25 @@ export const RepairWorkspace: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-3">
                   {job.status === 'awaiting_approval' && (
-                    <button
-                      onClick={handleApprove}
-                      disabled={actionLoading}
-                      className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
-                    >
-                      {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Approve & Finalize Fix</span>
-                    </button>
+                    <>
+                      <button
+                        onClick={handleReject}
+                        disabled={actionLoading}
+                        className="px-4 py-2.5 rounded-md text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition-colors flex items-center gap-1.5"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject Patch</span>
+                      </button>
+                      <button
+                        onClick={handleApprove}
+                        disabled={actionLoading}
+                        className="px-5 py-2.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition-all flex items-center gap-2"
+                      >
+                        {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Approve & Apply Fix</span>
+                      </button>
+                    </>
                   )}
                   {job.status === 'approved' && (
                     (user?.role === 'admin' || user?.role === 'developer') ? (

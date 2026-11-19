@@ -43,6 +43,17 @@ class SandboxExecutionEngine:
             return {n for n in names if n in {".git", ".venv", "node_modules", "__pycache__"}}
 
         shutil.copytree(source_dir, target_dir, ignore=ignore_patterns)
+
+        # Initialize lightweight local git repo so git apply works deterministically in sandbox
+        try:
+            subprocess.run(["git", "init"], cwd=str(target_dir), capture_output=True, timeout=5, check=False)
+            subprocess.run(["git", "config", "user.name", "PhoenixBot"], cwd=str(target_dir), capture_output=True, timeout=5, check=False)
+            subprocess.run(["git", "config", "user.email", "bot@phoenix.io"], cwd=str(target_dir), capture_output=True, timeout=5, check=False)
+            subprocess.run(["git", "add", "-A"], cwd=str(target_dir), capture_output=True, timeout=5, check=False)
+            subprocess.run(["git", "commit", "-m", "base", "--allow-empty"], cwd=str(target_dir), capture_output=True, timeout=5, check=False)
+        except Exception:
+            pass
+
         return target_dir
 
     @classmethod
@@ -80,6 +91,8 @@ class SandboxExecutionEngine:
                 env=sanitized_env,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=timeout,
                 shell=False
             )

@@ -82,20 +82,38 @@ def test_full_autonomous_self_healing_cycle(client, dev_token, sample_buggy_zip)
     )
     project_id = ingest_res.json()["id"]
 
-    # Trigger Autonomous Auto-Pilot
+    # Trigger Autonomous Auto-Pilot: Verifies patch in sandbox and queues for human approval
     pilot_res = client.post(
         f"/api/v1/projects/{project_id}/auto-pilot",
         headers={"Authorization": f"Bearer {dev_token}"},
-        json={"auto_apply": True, "override_model": "qwen-2.5-coder-32b"}
+        json={"auto_apply": False, "override_model": "qwen-2.5-coder-32b"}
     )
     assert pilot_res.status_code == status.HTTP_200_OK
     data = pilot_res.json()
-    assert data["status"] == "healed"
+    assert data["status"] == "awaiting_approval"
+    assert data["requires_approval"] is True
     assert data["model_used"] == "qwen-2.5-coder-32b"
-    assert data["workspace_modified"] is True
     assert "calculator.py" in data["patch_diff"]
 
-    # Re-scan project workspace to confirm zero remaining defects
+    # Verify that approval request appears in Human Approval Gate
+    appr_res = client.get(
+        "/api/v1/approvals",
+        headers={"Authorization": f"Bearer {dev_token}"}
+    )
+    assert appr_res.status_code == status.HTTP_200_OK
+    approvals = appr_res.json()
+    assert any(a["repair_job_id"] == data["repair_job_id"] and a["status"] == "pending" for a in approvals)
+
+    # Human Reviewer / Developer signs off and approves the patch
+    approve_res = client.post(
+        f"/api/v1/approvals/{data['repair_job_id']}/approve",
+        headers={"Authorization": f"Bearer {dev_token}"},
+        json={"patch_hash": data["patch_hash"], "notes": "Human cryptographic sign-off"}
+    )
+    assert approve_res.status_code == status.HTTP_200_OK
+    assert approve_res.json()["status"] == "approved"
+
+    # Re-scan project workspace to confirm zero remaining defects after human approval
     post_scan = client.post(
         f"/api/v1/projects/{project_id}/scan",
         headers={"Authorization": f"Bearer {dev_token}"}

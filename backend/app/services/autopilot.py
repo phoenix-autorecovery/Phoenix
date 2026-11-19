@@ -246,87 +246,49 @@ class AutoPilotService:
         # STEP 5: AUTONOMOUS WORKSPACE MODIFICATION
         # -------------------------------------------------------------
         if verified_patch and successful_val_run:
-            logger.info(f"Verification successful. Auto-applying patch to project workspace: {workspace_dir}")
+            logger.info(f"Verification successful in sandbox. Generating human approval request for: {repair_job.id}")
             
-            # Record auto-approval
-            approval = Approval(
-                repair_job_id=repair_job.id,
-                candidate_patch_id=verified_patch.id,
-                user_id=current_user.id,
-                status="approved",
-                patch_hash=verified_patch.patch_hash,
-                reviewer_notes=f"Auto-approved by PHOENIX Auto-Pilot Engine ({active_model}). Deterministic tests verified."
-            )
-            db.add(approval)
-            db.commit()
+            # Policy Enforcement: Strictly request human approval (NO auto-approvals)
+            repair_job.status = "awaiting_approval"
+            incident.status = "repairing"
+            
+            # Create Pending Approval request
+            existing_approval = db.query(Approval).filter(Approval.repair_job_id == repair_job.id).first()
+            if existing_approval:
+                existing_approval.status = "pending"
+                existing_approval.patch_hash = verified_patch.patch_hash
+                existing_approval.reviewer_notes = f"Verified in isolated sandbox using {active_model}. Awaiting human cryptographic sign-off."
+                approval = existing_approval
+            else:
+                approval = Approval(
+                    repair_job_id=repair_job.id,
+                    candidate_patch_id=verified_patch.id,
+                    user_id=current_user.id,
+                    status="pending",
+                    patch_hash=verified_patch.patch_hash,
+                    base_commit=repair_job.base_commit,
+                    reviewer_notes=f"Deterministic tests PASSED in isolated sandbox using {active_model}. Awaiting human cryptographic sign-off."
+                )
+                db.add(approval)
 
-            # Apply fix directly to project workspace if auto_apply enabled
-            workspace_modified = False
-            if auto_apply:
-                workspace_modified = RepairEngine.apply_patch_to_dir(workspace_dir, verified_patch.patch_content)
-                logger.info(f"Project workspace modified directly: {workspace_modified}")
-
-            # Optional GitHub Pull Request delivery if repo configured
-            github_pr_info = None
-            if project.source_url and "github.com" in project.source_url and settings.GITHUB_TOKEN:
-                try:
-                    branch_name = f"phoenix/auto-fix-{incident.id[:8]}"
-                    pr_title = f"fix(phoenix): auto-recovery for {incident.title}"
-                    pr_body = f"""## PHOENIX Autonomous Auto-Recovery Report
-- **Model:** `{active_model}`
-- **Incident:** {incident.title}
-- **Deterministic Verification:** PASSED
-- **Patch Hash:** `{verified_patch.patch_hash}`
-- **Auto-Applied:** {workspace_modified}
-"""
-                    DeliveryService.push_workspace_to_github(
-                        workspace_dir=workspace_dir,
-                        repo_url=project.source_url,
-                        branch_name=branch_name,
-                        commit_message=pr_title
-                    )
-                    pr_res = DeliveryService.create_github_pull_request(
-                        repo_url=project.source_url,
-                        base_branch="main",
-                        branch_name=branch_name,
-                        title=pr_title,
-                        body=pr_body
-                    )
-                    pr_record = PullRequestRecord(
-                        repair_job_id=repair_job.id,
-                        repository_url=project.source_url,
-                        branch_name=branch_name,
-                        pr_number=pr_res.get("pr_number"),
-                        pr_url=pr_res.get("pr_url"),
-                        status="opened"
-                    )
-                    db.add(pr_record)
-                    github_pr_info = pr_res
-                except Exception as gh_err:
-                    logger.warning(f"Auto GitHub PR delivery skipped: {gh_err}")
-
-            repair_job.status = "delivered" if github_pr_info else "applied"
-            incident.status = "resolved"
-            project.health_status = "healthy"
             db.commit()
 
             record_audit_event(
                 db=db,
-                action="autopilot.workspace_healed",
-                resource_type="project",
-                resource_id=project.id,
+                action="autopilot.approval_requested",
+                resource_type="repair_job",
+                resource_id=repair_job.id,
                 user_id=current_user.id,
                 details={
                     "incident_id": incident.id,
-                    "repair_job_id": repair_job.id,
                     "patch_hash": verified_patch.patch_hash,
-                    "workspace_modified": workspace_modified,
+                    "status": "awaiting_approval",
                     "model_used": active_model
                 }
             )
 
             return {
-                "status": "healed",
+                "status": "awaiting_approval",
                 "project_id": project.id,
                 "project_name": project.name,
                 "incident_id": incident.id,
@@ -335,10 +297,10 @@ class AutoPilotService:
                 "model_used": active_model,
                 "patch_hash": verified_patch.patch_hash,
                 "patch_diff": verified_patch.patch_content,
-                "workspace_modified": workspace_modified,
+                "workspace_modified": False,
                 "test_output": successful_val_run.test_output,
-                "github_pr": github_pr_info,
-                "message": f"Defect autonomously detected and healed using {active_model}. Workspace updated and verified."
+                "requires_approval": True,
+                "message": f"Deterministic verification PASSED in isolated sandbox using {active_model}. Human cryptographic approval request created: manual sign-off required before repository delivery."
             }
 
         else:

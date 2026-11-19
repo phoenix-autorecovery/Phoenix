@@ -73,25 +73,33 @@ class RepairEngine:
         Applies a unified diff patch to the sandbox directory.
         Uses git apply, hunk context matcher, or replacement fallback.
         """
+        if not patch_content or not patch_content.strip():
+            return False
+
         patch_file = sandbox_dir / "candidate.patch"
         patch_file.write_text(patch_content, encoding="utf-8")
         
-        # Try git apply first with 3-way fallback
-        try:
-            res = subprocess.run(
-                ["git", "apply", "--ignore-whitespace", "candidate.patch"],
-                cwd=str(sandbox_dir),
-                capture_output=True,
-                text=True,
-                timeout=15
-            )
-            if res.returncode == 0:
-                patch_file.unlink(missing_ok=True)
-                return True
-        except Exception:
-            pass
+        # 1. Try git apply with whitespace tolerance
+        for git_args in [
+            ["git", "apply", "--ignore-whitespace", "--whitespace=nowarn", "candidate.patch"],
+            ["git", "apply", "--no-index", "--ignore-whitespace", "--whitespace=nowarn", "candidate.patch"],
+            ["git", "apply", "-3", "--ignore-whitespace", "candidate.patch"]
+        ]:
+            try:
+                res = subprocess.run(
+                    git_args,
+                    cwd=str(sandbox_dir),
+                    capture_output=True,
+                    text=True,
+                    timeout=15
+                )
+                if res.returncode == 0:
+                    patch_file.unlink(missing_ok=True)
+                    return True
+            except Exception:
+                pass
 
-        # Python-based hunk application fallback
+        # 2. Python-based hunk application fallback
         try:
             lines = patch_content.splitlines()
             current_target = None
@@ -99,15 +107,26 @@ class RepairEngine:
                 if line.startswith("+++ b/"):
                     current_target = line[6:].strip()
                     break
+                elif line.startswith("+++ "):
+                    current_target = line[4:].strip().lstrip("b/")
+                    break
 
-            if current_target and (sandbox_dir / current_target).exists():
+            if current_target:
                 target_path = sandbox_dir / current_target
-                content = target_path.read_text(encoding="utf-8")
-                patched_text = cls._apply_unified_diff_to_text(content, patch_content)
-                if patched_text is not None:
-                    target_path.write_text(patched_text, encoding="utf-8")
-                    patch_file.unlink(missing_ok=True)
-                    return True
+                if not target_path.exists():
+                    # Fuzzy match file basename in sandbox directory
+                    base_name = Path(current_target).name
+                    found_files = list(sandbox_dir.rglob(base_name))
+                    if found_files:
+                        target_path = found_files[0]
+
+                if target_path.exists():
+                    content = target_path.read_text(encoding="utf-8", errors="replace")
+                    patched_text = cls._apply_unified_diff_to_text(content, patch_content)
+                    if patched_text is not None:
+                        target_path.write_text(patched_text, encoding="utf-8")
+                        patch_file.unlink(missing_ok=True)
+                        return True
         except Exception as e:
             logger.error(f"Fallback patch application failed: {e}")
 

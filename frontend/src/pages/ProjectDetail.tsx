@@ -281,11 +281,24 @@ export const ProjectDetail: React.FC = () => {
 
           {/* Auto-Pilot Results Card */}
           {autoPilotResult && (
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+            <div className={`p-4 rounded-xl space-y-3 ${
+              autoPilotResult.status === 'awaiting_approval' || autoPilotResult.requires_approval
+                ? 'bg-amber-950/20 border border-amber-500/40 text-amber-200'
+                : 'bg-slate-950/80 border border-slate-800'
+            }`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{autoPilotResult.message || 'Auto-Pilot self-healing cycle finished.'}</span>
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  {autoPilotResult.status === 'awaiting_approval' || autoPilotResult.requires_approval ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <span className="text-amber-300">Verification Passed! Human Cryptographic Approval Required</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-400">{autoPilotResult.message || 'Auto-Pilot cycle completed.'}</span>
+                    </>
+                  )}
                 </div>
                 {mode === 'dev' && (
                   <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
@@ -294,7 +307,31 @@ export const ProjectDetail: React.FC = () => {
                 )}
               </div>
 
-              {mode === 'simple' ? (
+              {(autoPilotResult.status === 'awaiting_approval' || autoPilotResult.requires_approval) ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    The candidate repair has satisfied all deterministic regression tests in an isolated sandbox. Under human-in-the-loop governance policies, you must explicitly approve the fix before it can be applied to this repository.
+                  </p>
+                  <div className="flex items-center gap-3 pt-1">
+                    <Link
+                      to="/approvals"
+                      className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Go to Approvals Gate</span>
+                    </Link>
+                    {autoPilotResult.repair_job_id && (
+                      <Link
+                        to={`/repairs/${autoPilotResult.repair_job_id}`}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 border border-slate-700"
+                      >
+                        <FileCode2 className="w-3.5 h-3.5 text-orange-400" />
+                        <span>Inspect Unified Diff</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ) : mode === 'simple' ? (
                 <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-xs text-emerald-300">
                   Fixed defects automatically. Verified zero regressions across all deterministic tests in isolated sandbox.
                 </div>
@@ -302,7 +339,7 @@ export const ProjectDetail: React.FC = () => {
                 <>
                   {autoPilotResult.patch_diff && (
                     <div className="space-y-1">
-                      <span className="text-[11px] font-mono uppercase text-slate-400">Autonomous Patch Applied:</span>
+                      <span className="text-[11px] font-mono uppercase text-slate-400">Autonomous Patch Verified:</span>
                       <pre className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-40">
                         {autoPilotResult.patch_diff}
                       </pre>

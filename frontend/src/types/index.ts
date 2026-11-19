@@ -95,6 +95,11 @@ export interface Approval {
   reviewer_notes?: string;
   decided_at?: string;
   created_at: string;
+  project_id?: string;
+  project_name?: string;
+  incident_id?: string;
+  incident_title?: string;
+  diff_summary?: string;
 }
 
 export interface PullRequestRecord {

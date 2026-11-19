@@ -47,6 +47,11 @@ class ApprovalResponse(BaseModel):
     reviewer_notes: Optional[str] = None
     decided_at: Optional[datetime.datetime] = None
     created_at: datetime.datetime
+    project_id: Optional[str] = None
+    project_name: Optional[str] = None
+    incident_id: Optional[str] = None
+    incident_title: Optional[str] = None
+    diff_summary: Optional[str] = None
 
     class Config:
         from_attributes = True
